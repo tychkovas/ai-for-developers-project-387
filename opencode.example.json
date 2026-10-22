@@ -1,0 +1,16 @@
+{
+  "mcp": {
+    "servers": {
+      "render": {
+        "type": "local",
+        "command": [
+          "npx",
+          "mcp-remote",
+          "https://mcp.render.com/mcp",
+          "--header",
+          "Authorization: Bearer ${RENDER_API_KEY}"
+        ]
+      }
+    }
+  }
+}
