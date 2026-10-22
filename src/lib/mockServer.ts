@@ -10,6 +10,7 @@ import {
   createBooking,
   createEventType,
   ensureSeed,
+  getAvailableSlots,
   getBookings,
   getEventTypes,
 } from './bookings';
@@ -119,6 +120,18 @@ async function handleRequest(request: Request, passThrough: (request: Request) =
     return handleEventTypePost(request);
   }
 
+  // Свободные слоты выбранного дня: GET /event-types/{id}/slots?date=YYYY-MM-DD.
+  // Валидный id + нерабочий день за пределами окна — 200 и пустой список.
+  if (method === 'GET' && path.endsWith('/slots')) {
+    const id = decodeURIComponent(
+      path.slice('/event-types/'.length, path.length - '/slots'.length),
+    );
+    const slots = getAvailableSlots(id, url.searchParams.get('date') ?? '');
+    return slots === null
+      ? errorResponse('not_found', 404, 'Тип события не найден')
+      : json(slots);
+  }
+
   if (method === 'GET' && path.startsWith('/event-types/')) {
     const id = decodeURIComponent(path.slice('/event-types/'.length));
     const eventType = getEventTypes().find((type) => type.id === id);
@@ -137,8 +150,8 @@ async function handleRequest(request: Request, passThrough: (request: Request) =
     return handleBookingPost(request);
   }
 
-  // Остальные запросы (создание слотов #21, отмена #23, статика) —
-  // наружу, мок-сервер их не притворяется.
+  // Остальные запросы (отмена записей #23, статика) — наружу,
+  // мок-сервер их не притворяется.
   return passThrough(request);
 }
 

@@ -3,7 +3,8 @@
 // в модуль данных bookings.ts, отвечая по контракту (spec/main.tsp):
 // 200/400/404/409 и тело { code, message }.
 import { beforeEach, expect, test } from 'vitest';
-import { createBooking, createEventType, getEventTypes } from '../api';
+import { createBooking, createEventType, getAvailableSlots, getEventTypes } from '../api';
+import { bookingWindowDays, isWeekendDay } from './bookings';
 import { installMockServer } from './mockServer';
 
 installMockServer();
@@ -13,6 +14,26 @@ function futureNoon(): Date {
   const start = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
   start.setHours(12, 0, 0, 0);
   return start;
+}
+
+/** Первый рабочий день после сегодняшнего — ключ 'YYYY-MM-DD' (всегда в окне). */
+function nextWeekdayKey(): string {
+  const key = bookingWindowDays()
+    .slice(1)
+    .find((date) => !isWeekendDay(date));
+  if (key === undefined) {
+    throw new Error('в окне нет рабочих дней');
+  }
+  return key;
+}
+
+/** Первый выходной день окна записи — ключ 'YYYY-MM-DD'. */
+function firstWeekendKey(): string {
+  const key = bookingWindowDays().find((date) => isWeekendDay(date));
+  if (key === undefined) {
+    throw new Error('в окне нет выходных дней');
+  }
+  return key;
 }
 
 beforeEach(() => {
@@ -108,4 +129,51 @@ test('SDK createEventType: успех 200, дубль id — 409 id_taken', asyn
   });
   expect(duplicate.response?.status).toBe(409);
   expect(duplicate.error).toMatchObject({ code: 'id_taken' });
+});
+
+test('SDK getAvailableSlots: рабочий день внутри окна — 200, старты по сетке с 10:00', async () => {
+  const { data, response } = await getAvailableSlots({
+    path: { id: '15-min' },
+    query: { date: nextWeekdayKey() },
+  });
+
+  expect(response?.status).toBe(200);
+  expect(data?.length).toBeGreaterThan(0);
+  expect(data?.every((slot) => new Date(slot.start).getMinutes() % 15 === 0)).toBe(true);
+  expect(data?.every((slot) => new Date(slot.start).getHours() >= 10)).toBe(true);
+});
+
+test('SDK getAvailableSlots: выходной день — 200 и пустой список', async () => {
+  const { data, response } = await getAvailableSlots({
+    path: { id: '15-min' },
+    query: { date: firstWeekendKey() },
+  });
+
+  expect(response?.status).toBe(200);
+  expect(data).toEqual([]);
+});
+
+test('SDK getAvailableSlots: слоты сегодня не ближе часа от текущего момента', async () => {
+  const checkedAt = Date.now();
+
+  const { data } = await getAvailableSlots({
+    path: { id: '15-min' },
+    query: { date: bookingWindowDays()[0] },
+  });
+
+  // Граница в 59 минут: юнит-тесты модуля проверяют ровно 1 час на фиксированном
+  // времени, здесь — свойство без гонки с часами машины.
+  expect(
+    data?.every((slot) => new Date(slot.start).getTime() - checkedAt >= 59 * 60_000),
+  ).toBe(true);
+});
+
+test('SDK getAvailableSlots: неизвестный тип события — 404 not_found', async () => {
+  const result = await getAvailableSlots({
+    path: { id: 'no-such-type' },
+    query: { date: nextWeekdayKey() },
+  });
+
+  expect(result.response?.status).toBe(404);
+  expect(result.error).toMatchObject({ code: 'not_found' });
 });

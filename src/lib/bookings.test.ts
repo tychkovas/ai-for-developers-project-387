@@ -1,12 +1,15 @@
 // Юнит-тесты модуля данных календаря — имитации сервера (шов «модуль данных»,
 // спека раздел 8). Операции и коды ошибок зеркалят утверждённый API-контракт
-// (spec/main.tsp): createBooking/createEventType, not_found/id_taken/slot_taken.
-// Внешняя зависимость — время — внедряется параметром now (граница системы).
+// (spec/main.tsp): createBooking/createEventType/getAvailableSlots,
+// not_found/id_taken/slot_taken. Внешняя зависимость — время — внедряется
+// параметром now (граница системы).
 import { beforeEach, expect, test } from 'vitest';
 import {
+  bookingWindowDays,
   createBooking,
   createEventType,
   ensureSeed,
+  getAvailableSlots,
   getBookings,
   getEventTypes,
 } from './bookings';
@@ -281,4 +284,127 @@ test('seed не запускается, когда в localStorage уже ест
 
   expect(getEventTypes()).toEqual([]);
   expect(getBookings().map((booking) => booking.id)).toEqual(['b-1']);
+});
+
+// ——— Генерация слотов (тикет #21, спека разделы 3 и 6.3) ———
+
+test('bookingWindowDays: окно 14 дней начиная с текущего дня', () => {
+  const days = bookingWindowDays(NOW);
+
+  expect(days).toHaveLength(14);
+  expect(days[0]).toBe('2026-10-21');
+  expect(days[13]).toBe('2026-11-03');
+});
+
+test('getAvailableSlots: границы окна — последний день есть, за окном пусто', () => {
+  ensureSeed(NOW);
+
+  // Вторник, 3 ноября 2026 — последний день окна.
+  const lastDay = getAvailableSlots('15-min', '2026-11-03', NOW);
+  expect(lastDay?.[0]).toEqual({
+    start: new Date(2026, 10, 3, 10, 0).toISOString(),
+    end: new Date(2026, 10, 3, 10, 15).toISOString(),
+  });
+  // Среда, 4 ноября — уже за пределами окна.
+  expect(getAvailableSlots('15-min', '2026-11-04', NOW)).toEqual([]);
+});
+
+test('getAvailableSlots: выходные дни не предлагаются', () => {
+  ensureSeed(NOW);
+
+  expect(getAvailableSlots('15-min', '2026-10-24', NOW)).toEqual([]);
+  expect(getAvailableSlots('15-min', '2026-10-25', NOW)).toEqual([]);
+});
+
+test('getAvailableSlots: границы рабочих часов и сетка 15 минут', () => {
+  ensureSeed(NOW);
+
+  const slots = getAvailableSlots('15-min', '2026-10-21', NOW);
+  expect(slots?.[0]).toEqual({
+    start: new Date(2026, 9, 21, 10, 0).toISOString(),
+    end: new Date(2026, 9, 21, 10, 15).toISOString(),
+  });
+  expect(slots?.[slots.length - 1].start).toBe(
+    new Date(2026, 9, 21, 18, 45).toISOString(),
+  );
+  // Невидимая сетка: старты каждые 15 минут, ни один не выходит за 19:00.
+  expect(
+    slots?.every((slot) => new Date(slot.start).getMinutes() % 15 === 0),
+  ).toBe(true);
+  expect(
+    slots?.every((slot) => {
+      const hour = new Date(slot.start).getHours();
+      return hour >= 10 && hour < 19;
+    }),
+  ).toBe(true);
+});
+
+test('getAvailableSlots: «Встреча 30 минут» занимает два слота сетки — последний старт 18:30', () => {
+  ensureSeed(NOW);
+
+  const slots = getAvailableSlots('30-min', '2026-10-21', NOW);
+  expect(slots?.[slots.length - 1]).toEqual({
+    start: new Date(2026, 9, 21, 18, 30).toISOString(),
+    end: new Date(2026, 9, 21, 19, 0).toISOString(),
+  });
+});
+
+test('getAvailableSlots: тип события в 20 минут занимает ⌈20/15⌉ = 2 слота сетки', () => {
+  ensureSeed(NOW);
+  createEventType({
+    id: '20-min',
+    name: 'Встреча 20 минут',
+    description: 'Созвон на 20 минут',
+    durationMinutes: 20,
+  });
+
+  const slots = getAvailableSlots('20-min', '2026-10-21', NOW);
+  expect(slots?.[slots.length - 1]).toEqual({
+    start: new Date(2026, 9, 21, 18, 30).toISOString(),
+    end: new Date(2026, 9, 21, 18, 50).toISOString(),
+  });
+});
+
+test('getAvailableSlots: минимальное упреждение 1 час', () => {
+  ensureSeed(NOW);
+
+  // «Сейчас»10:30: слоты 10:30–11:15 ближе часа и не предлагаются,
+  // первый доступный — 11:30 (ровно через час).
+  const slots = getAvailableSlots('15-min', '2026-10-21', new Date(2026, 9, 21, 10, 30));
+  expect(slots?.[0].start).toBe(new Date(2026, 9, 21, 11, 30).toISOString());
+});
+
+test('getAvailableSlots: занятые и пересекающиеся слоты не предлагаются', () => {
+  ensureSeed(NOW);
+
+  // Четверг, 22 октября: demo-1 (11:00–11:15, 15 мин) и demo-2 (15:00–15:30, 30 мин).
+  const starts = getAvailableSlots('15-min', '2026-10-22', NOW)?.map(
+    (slot) => new Date(slot.start).toISOString(),
+  );
+  expect(starts).not.toContain(new Date(2026, 9, 22, 11, 0).toISOString());
+  expect(starts).not.toContain(new Date(2026, 9, 22, 15, 0).toISOString());
+  expect(starts).not.toContain(new Date(2026, 9, 22, 15, 15).toISOString());
+  // Границы свободны: до и после записи слоты предлагаются.
+  expect(starts).toContain(new Date(2026, 9, 22, 10, 45).toISOString());
+  expect(starts).toContain(new Date(2026, 9, 22, 15, 30).toISOString());
+});
+
+test('getAvailableSlots: слоты «Встреча 30 минут», пересекающиеся с записями 15-минутного типа, скрыты', () => {
+  ensureSeed(NOW);
+
+  // Четверг, 22 октября: demo-1 занимает 11:00–11:15 типа «Встреча 15 минут».
+  const starts = getAvailableSlots('30-min', '2026-10-22', NOW)?.map(
+    (slot) => new Date(slot.start).toISOString(),
+  );
+  expect(starts).not.toContain(new Date(2026, 9, 22, 10, 45).toISOString());
+  expect(starts).not.toContain(new Date(2026, 9, 22, 11, 0).toISOString());
+  expect(starts).toContain(new Date(2026, 9, 22, 11, 15).toISOString());
+  expect(starts).not.toContain(new Date(2026, 9, 22, 14, 45).toISOString());
+  expect(starts).toContain(new Date(2026, 9, 22, 15, 30).toISOString());
+});
+
+test('getAvailableSlots: неизвестный тип события — null (not_found для мок-сервера)', () => {
+  ensureSeed(NOW);
+
+  expect(getAvailableSlots('no-such-type', '2026-10-21', NOW)).toBeNull();
 });

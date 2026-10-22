@@ -4,12 +4,23 @@
 // (not_found / id_taken / slot_taken) повторяют контрактные; HTTP-статусы
 // выставляет адаптер src/lib/mockServer.ts, который перехватывает запросы
 // сгенерированного SDK (ADR-0002 — живого бэкенда нет). Конфликты слотов
-// проверяются здесь, «на бэкенде», — не в UI. Хранение — localStorage.
+// и генерация свободных слотов (окно 14 дней, рабочие часы, сетка 15 минут) —
+// здесь, «на бэкенде», — не в UI. Хранение — localStorage.
 
-import type { Booking, CreateBooking, CreateEventType, EventType } from '../api/types.gen';
+import type { Booking, CreateBooking, CreateEventType, EventType, Slot } from '../api/types.gen';
 
 const EVENT_TYPES_KEY = 'call-scheduling:event-types';
 const BOOKINGS_KEY = 'call-scheduling:bookings';
+
+/** Рабочие часы владельца: Пн–Пт 10:00–19:00 (спека, раздел 3; зашиты в код). */
+const WORK_DAY_START_HOUR = 10;
+const WORK_DAY_END_HOUR = 19;
+/** Невидимая сетка слотов: тип события D минут занимает ⌈D/15⌉ соседних ячеек. */
+const SLOT_GRID_MINUTES = 15;
+/** Окно записи: слоты формируются на 14 дней вперёд от текущей даты. */
+const BOOKING_WINDOW_DAYS = 14;
+/** Минимальное упреждение: слоты, начинающиеся ближе часа, гостю не предлагаются. */
+const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
 
 export type CreateEventTypeResult =
   | { ok: true; eventType: EventType }
@@ -91,6 +102,102 @@ export function createBooking(
   };
   writeList<Booking>(BOOKINGS_KEY, [...getBookings(), booking]);
   return { ok: true, booking };
+}
+
+// ——— Генерация свободных слотов (тикет #21, спека разделы 3 и 6.3) ———
+
+/** Локальный ключ даты 'YYYY-MM-DD'. */
+export function toDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** Разбор ключа 'YYYY-MM-DD' в локальную полночь; некорректный ключ — null. */
+function parseDateKey(key: string): Date | null {
+  const [year, month, day] = key.split('-').map(Number);
+  if (year === undefined || month === undefined || day === undefined) {
+    return null;
+  }
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime()) || toDateKey(date) !== key) {
+    return null;
+  }
+  return date;
+}
+
+/** Рабочий день (Пн–Пт)? Выходные слоты не предлагаются (спека, раздел 3). */
+function isWeekday(day: Date): boolean {
+  return day.getDay() !== 0 && day.getDay() !== 6;
+}
+
+/** Выходной день по ключу даты — календарь блокирует такие дни (спека, 6.3). */
+export function isWeekendDay(dateKey: string): boolean {
+  const day = parseDateKey(dateKey);
+  return day !== null && !isWeekday(day);
+}
+
+/**
+ * Окно записи: 14 локальных ключей дат, начиная с текущего дня
+ * (спека, раздел 3: «окно записи — 14 дней, начиная с текущей даты»).
+ */
+export function bookingWindowDays(now: Date = new Date()): string[] {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return Array.from({ length: BOOKING_WINDOW_DAYS }, (_, index) => {
+    const day = new Date(today);
+    day.setDate(today.getDate() + index);
+    return toDateKey(day);
+  });
+}
+
+/**
+ * Свободные слоты выбранного дня для типа события (контракт getAvailableSlots):
+ * только рабочие дни в 14-дневном окне, старты по сетке 15 минут в пределах
+ * рабочих часов, не ближе часа от текущего момента и не пересекающиеся с
+ * любыми записями — включая записи других типов события (спека, раздел 3).
+ * null — тип события не найден (мок-сервер ответит 404 not_found).
+ */
+export function getAvailableSlots(
+  eventTypeId: string,
+  dateKey: string,
+  now: Date = new Date(),
+): Slot[] | null {
+  const eventType = getEventTypes().find((type) => type.id === eventTypeId);
+  if (!eventType) {
+    return null;
+  }
+  const day = parseDateKey(dateKey);
+  if (day === null || !isWeekday(day) || !bookingWindowDays(now).includes(dateKey)) {
+    return [];
+  }
+  const stepMs = SLOT_GRID_MINUTES * 60_000;
+  const durationMs = eventType.durationMinutes * 60_000;
+  // ⌈D/15⌉ ячеек сетки: последний допустимый старт — конец рабочих часов минус занятое.
+  const lastStart =
+    at(day, WORK_DAY_END_HOUR, 0).getTime() -
+    Math.ceil(eventType.durationMinutes / SLOT_GRID_MINUTES) * stepMs;
+  const bookings = getBookings();
+  const slots: Slot[] = [];
+  for (
+    let start = at(day, WORK_DAY_START_HOUR, 0).getTime();
+    start <= lastStart;
+    start += stepMs
+  ) {
+    if (start - now.getTime() < MIN_LEAD_TIME_MS) {
+      continue;
+    }
+    const end = start + durationMs;
+    const busy = bookings.some(
+      (booking) =>
+        start < new Date(booking.end).getTime() &&
+        end > new Date(booking.start).getTime(),
+    );
+    if (!busy) {
+      slots.push({ start: new Date(start).toISOString(), end: new Date(end).toISOString() });
+    }
+  }
+  return slots;
 }
 
 /** Ближайший Пн–Пт строго после from (полночь, локальное время). */

@@ -1,5 +1,5 @@
 // Тесты приложения как чёрного ящика (шов «приложение как чёрный ящик»):
-// витрина, хедер, каталог типов события из демо-seed, маршрутизация.
+// витрина, хедер, каталог типов события из демо-seed, выбор слота, маршруты.
 // Данные приходят так же, как в живом приложении: компоненты зовут
 // сгенерированный SDK, запросы перехватывает мок-сервер; маршруты —
 // через history.pushState, проверки — по role/text.
@@ -10,8 +10,18 @@ import {
   screen,
   within,
 } from '@testing-library/react';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ru';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import App from './App';
+import {
+  bookingWindowDays,
+  createBooking,
+  createEventType,
+  ensureSeed,
+  getAvailableSlots,
+  isWeekendDay,
+} from './lib/bookings';
 
 beforeEach(() => {
   // Каждый тест стартует как «первый запуск» с пустым localStorage.
@@ -113,4 +123,120 @@ test('неизвестный маршрут редиректит на витри
     screen.getByRole('heading', { level: 1, name: 'Запишитесь на звонок в пару кликов' }),
   ).toBeTruthy();
   expect(window.location.pathname).toBe('/');
+});
+
+// ——— Выбор слота /book/:slug (тикет #21, спека раздел 6.3) ———
+
+test('при входе на /book/15-min календарь показывает текущий месяц и выбранный первый день со слотами', async () => {
+  renderAt('/book/15-min');
+
+  // Текущий месяц в заголовке календаря.
+  expect(await screen.findByText(dayjs().locale('ru').format('MMMM YYYY'))).toBeTruthy();
+  // Свободные слоты выбранного дня видны списком.
+  expect((await screen.findAllByRole('button', { name: /^\d{1,2}:\d{2}$/ })).length).toBeGreaterThan(0);
+  // Выбран первый день со слотами: по умолчанию обычно сегодня.
+  const expectedDay =
+    bookingWindowDays().find((date) => (getAvailableSlots('15-min', date)?.length ?? 0) > 0) ?? '';
+  expect(await screen.findByText(dayjs(expectedDay).locale('ru').format('D MMMM'))).toBeTruthy();
+  expect(
+    screen.getByRole('button', { pressed: true }).getAttribute('aria-label'),
+  ).toBe(dayjs(expectedDay).locale('ru').format('D MMMM YYYY'));
+  // Контекстная навигация на каталог типов события.
+  expect(screen.getByRole('link', { name: '← Типы события' }).getAttribute('href')).toBe('/events');
+});
+
+test('выходные дни в календаре не выбираются', async () => {
+  renderAt('/book/15-min');
+  await screen.findAllByRole('button', { name: /^\d{1,2}:\d{2}$/ });
+
+  // Ближайшая суббота текущего месяца видна в месячной сетке и заблокирована.
+  const firstOfMonth = dayjs().startOf('month');
+  const saturday = firstOfMonth.add((6 - firstOfMonth.day() + 7) % 7, 'day');
+  const button = screen.getByRole('button', {
+    name: saturday.locale('ru').format('D MMMM YYYY'),
+  });
+  expect((button as HTMLButtonElement).disabled).toBe(true);
+});
+
+test('навигация по месяцам не уходит за пределы окна записи', async () => {
+  renderAt('/book/15-min');
+  await screen.findAllByRole('button', { name: /^\d{1,2}:\d{2}$/ });
+
+  // Окно 14 дней захватывает максимум два месяца: вперёд не более одного раза.
+  const next = screen.getByRole('button', { name: 'Следующий месяц' }) as HTMLButtonElement;
+  const spansTwoMonths =
+    dayjs(bookingWindowDays().at(-1)).format('YYYY-MM') !== dayjs().format('YYYY-MM');
+  if (spansTwoMonths) {
+    expect(next.disabled).toBe(false);
+    fireEvent.click(next);
+    expect(
+      (screen.getByRole('button', { name: 'Следующий месяц' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  } else {
+    expect(next.disabled).toBe(true);
+  }
+});
+
+test('клик по слоту ведёт на /book/:slug/confirm?slot=…', async () => {
+  renderAt('/book/15-min');
+
+  const slots = await screen.findAllByRole('button', { name: /^\d{1,2}:\d{2}$/ });
+  fireEvent.click(slots[0]);
+
+  expect(window.location.pathname).toBe('/book/15-min/confirm');
+  expect(window.location.search).toMatch(/^\?slot=/);
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'Форма записи' }),
+  ).toBeTruthy();
+  expect(screen.getByRole('link', { name: '← Выбор слота' }).getAttribute('href')).toBe(
+    '/book/15-min',
+  );
+});
+
+test('повторный клик по выбранному дню сбрасывает выбор — «Выберите дату в календаре»', async () => {
+  renderAt('/book/15-min');
+  await screen.findAllByRole('button', { name: /^\d{1,2}:\d{2}$/ });
+
+  fireEvent.click(screen.getByRole('button', { pressed: true }));
+
+  expect(await screen.findByText('Выберите дату в календаре')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^\d{1,2}:\d{2}$/ })).toBeNull();
+});
+
+test('полностью занятый день показывает «Нет слотов на этот день»', async () => {
+  ensureSeed();
+  createEventType({
+    id: 'full-day',
+    name: 'День целиком',
+    description: 'Блокировка всего рабочего дня',
+    durationMinutes: 540,
+  });
+  // Занятый день — последний рабочий день окна: он всегда позже первого дня
+  // со слотами, поэтому при входе выбранным остаётся свободный день.
+  const days = bookingWindowDays();
+  const busyKey = days.toReversed().find((date) => !isWeekendDay(date));
+  if (busyKey === undefined) {
+    throw new Error('в окне нет рабочих дней');
+  }
+  const [year, month, day] = busyKey.split('-').map(Number);
+  const busyDay = new Date(year, month - 1, day, 10, 0, 0, 0);
+  createBooking({
+    eventTypeId: 'full-day',
+    start: busyDay.toISOString(),
+    guestName: 'Занятый день',
+    guestEmail: 'busy@example.com',
+  });
+
+  renderAt('/book/15-min');
+  await screen.findAllByRole('button', { name: /^\d{1,2}:\d{2}$/ });
+
+  // Открыть полностью занятый день в календаре (при необходимости — листануть месяц).
+  const busyLabel = dayjs(busyDay).locale('ru').format('D MMMM YYYY');
+  if (!screen.queryByRole('button', { name: busyLabel })) {
+    fireEvent.click(screen.getByRole('button', { name: 'Следующий месяц' }));
+  }
+  fireEvent.click(screen.getByRole('button', { name: busyLabel }));
+
+  expect(await screen.findByText('Нет слотов на этот день')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^\d{1,2}:\d{2}$/ })).toBeNull();
 });
