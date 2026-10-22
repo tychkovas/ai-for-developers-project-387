@@ -1,6 +1,7 @@
 // Каталог типов события (/events, спека раздел 6.2):
-// карточки из модуля данных, порядок — по возрастанию длительности;
-// карточка целиком кликабельна, и карточка, и кнопка ведут на /book/:id.
+// карточки из модуля данных — «сервер» отдаёт каталог уже по возрастанию
+// длительности; карточка целиком кликабельна, и карточка, и кнопка ведут
+// на /book/:id.
 import { Button, Card, Container, Group, Stack, Text, Title } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { AppHeader } from '../components/AppHeader';
@@ -20,9 +21,7 @@ function formatDuration(durationMinutes: number): string {
 }
 
 export default function EventsPage() {
-  const eventTypes = [...useEventTypes()].sort(
-    (a, b) => a.durationMinutes - b.durationMinutes,
-  );
+  const eventTypes = useEventTypes();
 
   return (
     <>
@@ -45,7 +44,7 @@ export default function EventsPage() {
               <Group justify="space-between" align="flex-start" wrap="nowrap">
                 <Stack gap="xs">
                   <Title order={2} size="h3">
-                    {type.title}
+                    {type.name}
                   </Title>
                   <Text c="dimmed">{type.description}</Text>
                   <Text size="sm" fw={500}>

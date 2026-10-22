@@ -23,7 +23,7 @@ export default function BookPage() {
           <Anchor component={Link} to="/events" underline="never" size="sm">
             ← Типы события
           </Anchor>
-          <Title order={1}>{eventType.title}</Title>
+          <Title order={1}>{eventType.name}</Title>
           <Text c="dimmed">
             Выбор даты и слота появится здесь — экран в разработке.
           </Text>
