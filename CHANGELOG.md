@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/tychkovas/ai-for-developers-project-386/compare/v0.1.0...v0.2.0) (2026-10-22)
+
+
+### Features
+
+* add booking calendar with slot picking ([#21](https://github.com/tychkovas/ai-for-developers-project-386/issues/21)) ([2ffa4db](https://github.com/tychkovas/ai-for-developers-project-386/commit/2ffa4db25808861c3fe09e93ddeecbe4700d2acf))
+* add booking confirmation form and success screen ([#22](https://github.com/tychkovas/ai-for-developers-project-386/issues/22)) ([23b4e58](https://github.com/tychkovas/ai-for-developers-project-386/commit/23b4e5826d075e95a4d285f04f182062b346688f))
+* add Docker image with Fastify static server for deploy ([92e315c](https://github.com/tychkovas/ai-for-developers-project-386/commit/92e315c1bf392fb569622f6ea0104dcc69efda34))
+* add event type catalog and demo seed ([#20](https://github.com/tychkovas/ai-for-developers-project-386/issues/20)) ([4687bc1](https://github.com/tychkovas/ai-for-developers-project-386/commit/4687bc1ef0b45c75fb155e428b0db1046e28684c))
+* add event type creation form to admin panel ([#24](https://github.com/tychkovas/ai-for-developers-project-386/issues/24)) ([9ddf2c9](https://github.com/tychkovas/ai-for-developers-project-386/commit/9ddf2c976d6501bf19df91ec97c3ba1397d2de10))
+* add owner panel with upcoming bookings and cancellation ([#23](https://github.com/tychkovas/ai-for-developers-project-386/issues/23)) ([3ec0579](https://github.com/tychkovas/ai-for-developers-project-386/commit/3ec0579d80dea14229383a0d58b5cf8bf9826ece))
+* align data module with api contract and validate slot conflicts ([e66847c](https://github.com/tychkovas/ai-for-developers-project-386/commit/e66847c08cb2384631276a1340d60ae5da3193e0))
+* route frontend through generated sdk via mock server ([8140bc6](https://github.com/tychkovas/ai-for-developers-project-386/commit/8140bc6ce69dac47fa271602cdeb1f8954f5f2df))
+
 ## 0.1.0 (2026-10-21)
 
 
