@@ -3,10 +3,8 @@
 // слотов — «на бэкенде» (модуль данных bookings.ts через SDK и мок-сервер):
 // рабочие часы, сетка 15 минут, упреждение 1 час, занятые скрыты. По умолчанию
 // выбран первый день со слотами; повторный клик по дню сбрасывает выбор.
-// Клик по слоту ведёт на форму записи (тикет #22). Неизвестный :slug —
-// молчаливый редирект на /events (спека, раздел 5).
-import dayjs from 'dayjs';
-import 'dayjs/locale/ru';
+// Клик по слоту ведёт на форму записи (/book/:slug/confirm). Неизвестный
+// :slug — молчаливый редирект на /events (спека, раздел 5).
 import {
   Anchor,
   Button,
@@ -24,14 +22,14 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AppHeader } from '../components/AppHeader';
 import { LoadingRow } from '../components/LoadingRow';
 import { isWeekendDay, bookingWindowDays, toDateKey } from '../lib/bookings';
+import { formatDayMonth, formatTime } from '../lib/format';
 import { useAvailableSlots } from '../lib/useAvailableSlots';
-import { useEventTypes } from '../lib/useEventTypes';
+import { useEventType } from '../lib/useEventType';
 
 export default function BookPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { eventTypes, loading: typesLoading } = useEventTypes();
-  const eventType = eventTypes.find((type) => type.id === slug);
+  const { eventType, loading: typesLoading } = useEventType(slug);
   const { slotsByDate, loading: slotsLoading } = useAvailableSlots(eventType?.id);
   // Явный выбор гостя: повторный клик по выбранному дню сбрасывает выбор.
   const [picked, setPicked] = useState<string | null>(null);
@@ -93,9 +91,7 @@ export default function BookPage() {
                   )}
                   {!slotsLoading && selectedKey !== null && (
                     <>
-                      <Title order={3}>
-                        {dayjs(selectedKey).locale('ru').format('D MMMM')}
-                      </Title>
+                      <Title order={3}>{formatDayMonth(selectedKey)}</Title>
                       {daySlots.length === 0 ? (
                         <Text c="dimmed">Нет слотов на этот день</Text>
                       ) : (
@@ -110,7 +106,7 @@ export default function BookPage() {
                                 )
                               }
                             >
-                              {dayjs(slot.start).format('HH:mm')}
+                              {formatTime(slot.start)}
                             </Button>
                           ))}
                         </Group>
