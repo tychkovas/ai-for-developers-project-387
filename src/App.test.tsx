@@ -23,6 +23,7 @@ import {
   ensureSeed,
   getAvailableSlots,
   getBookings,
+  getEventTypes,
   isWeekendDay,
 } from './lib/bookings';
 
@@ -504,4 +505,116 @@ test('admin: подтверждение отмены удаляет запись
   expect(getBookings().map((booking) => booking.id)).toEqual(['demo-2', 'demo-3']);
   // Слот снова доступен гостю.
   expect(offersAt1100()).toBe(true);
+});
+
+// ——— Создание типа события в админке (тикет #24, спека раздел 6.6) ———
+
+/** Подписи полей формы создания типа события: значение формы → label. */
+const CREATE_FORM_LABELS = {
+  id: 'id',
+  name: 'Название',
+  description: 'Описание',
+  durationMinutes: 'Длительность в минутах',
+} as const;
+
+/** Заполнить форму создания типа события; overrides — перезаписи полей. */
+function fillCreateForm(overrides: Partial<Record<keyof typeof CREATE_FORM_LABELS, string>> = {}) {
+  const values = {
+    id: '20-min',
+    name: 'Разбор на 20 минут',
+    description: 'Долгий разбор вопросов',
+    durationMinutes: '20',
+    ...overrides,
+  };
+  for (const [field, label] of Object.entries(CREATE_FORM_LABELS)) {
+    fireEvent.change(screen.getByLabelText(label), {
+      target: { value: values[field as keyof typeof values] },
+    });
+  }
+}
+
+test('admin: блок «Создать тип события» — заголовок и четыре поля', async () => {
+  renderAt('/admin');
+
+  expect(
+    await screen.findByRole('heading', { level: 2, name: 'Создать тип события' }),
+  ).toBeTruthy();
+  expect(screen.getByLabelText('id')).toBeTruthy();
+  expect(screen.getByLabelText('Название')).toBeTruthy();
+  expect(screen.getByLabelText('Описание')).toBeTruthy();
+  expect(screen.getByLabelText('Длительность в минутах')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Создать' })).toBeTruthy();
+});
+
+test('admin: созданный тип появляется в каталоге и доступен для записи', async () => {
+  renderAt('/admin');
+  await screen.findByRole('heading', { level: 2, name: 'Создать тип события' });
+
+  fillCreateForm();
+  fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
+
+  // Успех: форма очищается; идём в каталог через хедер и CTA витрины.
+  await waitFor(() =>
+    expect((screen.getByLabelText('id') as HTMLInputElement).value).toBe(''),
+  );
+  fireEvent.click(screen.getByRole('link', { name: 'Назад к витрине' }));
+  fireEvent.click(await screen.findByRole('link', { name: 'Записаться на звонок' }));
+
+  // Карточка нового типа в каталоге: название, описание, длительность.
+  const card = await screen.findByRole('link', { name: /Разбор на 20 минут/ });
+  expect(card.getAttribute('href')).toBe('/book/20-min');
+  expect(within(card).getByText('Долгий разбор вопросов')).toBeTruthy();
+  expect(within(card).getByText('20 минут')).toBeTruthy();
+
+  // Новый тип доступен для записи: календарь и свободные слоты.
+  fireEvent.click(card);
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'Разбор на 20 минут' }),
+  ).toBeTruthy();
+  expect(window.location.pathname).toBe('/book/20-min');
+  expect(
+    (await screen.findAllByRole('button', { name: /^\d{1,2}:\d{2}$/ })).length,
+  ).toBeGreaterThan(0);
+  // Длительность участвует в расчёте слотов: ⌈20/15⌉ = 2 слота сетки,
+  // поэтому последний старт дня — 18:30 (для 15-минутного типа это 18:45).
+  expect(screen.getByRole('button', { name: '18:30' })).toBeTruthy();
+});
+
+test.each(['ивент', 'my id', 'my$id'])(
+  'admin: некорректный id «%s» блокируется с сообщением',
+  async (badId) => {
+    renderAt('/admin');
+    await screen.findByRole('heading', { level: 2, name: 'Создать тип события' });
+
+    fillCreateForm({ id: badId });
+    fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
+
+    expect(await screen.findByText('id: латиница, цифры, дефис')).toBeTruthy();
+    // Тип не создан.
+    expect(getEventTypes().map((type) => type.id)).toEqual(['15-min', '30-min']);
+  },
+);
+
+test('admin: неуникальный id блокируется сообщением сервера (409 id_taken)', async () => {
+  renderAt('/admin');
+  await screen.findByRole('heading', { level: 2, name: 'Создать тип события' });
+
+  fillCreateForm({ id: '15-min', name: 'Дубль', description: 'Дубль типа', durationMinutes: '15' });
+  fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
+
+  expect(
+    await screen.findByText('Тип события с таким id уже существует'),
+  ).toBeTruthy();
+  expect(getEventTypes().map((type) => type.id)).toEqual(['15-min', '30-min']);
+});
+
+test('admin: пустая форма не создаёт тип — сообщения валидации', async () => {
+  renderAt('/admin');
+  await screen.findByRole('heading', { level: 2, name: 'Создать тип события' });
+
+  fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
+
+  expect(await screen.findByText('id: латиница, цифры, дефис')).toBeTruthy();
+  expect(screen.getAllByText('Проверьте название, описание и длительность')).toHaveLength(3);
+  expect(getEventTypes().map((type) => type.id)).toEqual(['15-min', '30-min']);
 });

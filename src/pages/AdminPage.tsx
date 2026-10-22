@@ -6,30 +6,62 @@
 // в модалке Mantine: полное удаление, слот мгновенно освобождается. Пусто —
 // «Нет предстоящих записей». Список предстоящих не показывает прошедшие записи
 // (фильтр upcoming); хедер панели — «Назад к витрине» (спека, раздел 5).
+// Ниже списка — блок «Создать тип события» (тикет #24): форма с @mantine/form,
+// сохранение только через SDK createEventType; клиентская валидация id
+// дублирует серверную, неуникальный id подсвечивает сообщением 409 id_taken.
 import {
+  Alert,
   Button,
   Container,
   Group,
   Modal,
+  NumberInput,
   Paper,
   Stack,
   Text,
+  Textarea,
+  TextInput,
   Title,
 } from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { useState } from 'react';
 import { AppHeader } from '../components/AppHeader';
 import { LoadingRow } from '../components/LoadingRow';
-import { cancelBooking } from '../api';
+import { cancelBooking, createEventType } from '../api';
 import type { Booking } from '../api';
 import { formatDayMonth, formatTimeRange } from '../lib/format';
 import { useEventTypes } from '../lib/useEventTypes';
 import { useUpcomingBookings } from '../lib/useUpcomingBookings';
+
+/** Сообщение серверной валидации пустых полей (мок-сервер, POST /event-types). */
+const REQUIRED_MESSAGE = 'Проверьте название, описание и длительность';
+/** Формат id: латиница, цифры, дефис — тот же, что проверяет сервер. */
+const EVENT_TYPE_ID_PATTERN = /^[A-Za-z0-9-]+$/;
 
 export default function AdminPage() {
   const { bookings, loading, reload } = useUpcomingBookings();
   const { eventTypes } = useEventTypes();
   // Запись, отмену которой подтверждают в модалке; null — модалка закрыта.
   const [pending, setPending] = useState<Booking | null>(null);
+  // Ошибка создания типа события, не привязанная к полю (сеть и прочее).
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const form = useForm({
+    initialValues: {
+      id: '',
+      name: '',
+      description: '',
+      durationMinutes: '' as string | number,
+    },
+    validate: {
+      id: (value) =>
+        EVENT_TYPE_ID_PATTERN.test(value.trim()) ? null : 'id: латиница, цифры, дефис',
+      name: (value) => (value.trim() ? null : REQUIRED_MESSAGE),
+      description: (value) => (value.trim() ? null : REQUIRED_MESSAGE),
+      durationMinutes: (value) =>
+        Number.isInteger(Number(value)) && Number(value) > 0 ? null : REQUIRED_MESSAGE,
+    },
+  });
 
   const eventTypeName = (eventTypeId: string) =>
     eventTypes.find((type) => type.id === eventTypeId)?.name ?? eventTypeId;
@@ -44,6 +76,28 @@ export default function AdminPage() {
     setPending(null);
     reload();
   };
+
+  const onCreate = form.onSubmit(async (values) => {
+    setCreateError(null);
+    const { data, error } = await createEventType({
+      body: {
+        id: values.id.trim(),
+        name: values.name.trim(),
+        description: values.description.trim(),
+        durationMinutes: Number(values.durationMinutes),
+      },
+    });
+    if (data) {
+      form.reset();
+      return;
+    }
+    if (error?.code === 'id_taken') {
+      // Уникальность проверяет сервер — источник истины (тикет #24).
+      form.setErrors({ id: error.message });
+      return;
+    }
+    setCreateError(error?.message ?? 'Не удалось создать тип события. Попробуйте ещё раз.');
+  });
 
   return (
     <>
@@ -76,6 +130,31 @@ export default function AdminPage() {
               ))}
             </Stack>
           )}
+          <Title order={2}>Создать тип события</Title>
+          <form onSubmit={onCreate}>
+            <Stack gap="sm">
+              {createError && (
+                <Alert color="red" role="alert">
+                  {createError}
+                </Alert>
+              )}
+              <TextInput
+                label="id"
+                description="Латиница, цифры и дефис; должен быть уникальным"
+                {...form.getInputProps('id')}
+              />
+              <TextInput label="Название" {...form.getInputProps('name')} />
+              <Textarea label="Описание" {...form.getInputProps('description')} />
+              <NumberInput
+                label="Длительность в минутах"
+                min={1}
+                {...form.getInputProps('durationMinutes')}
+              />
+              <Button type="submit" loading={form.submitting} w="fit-content">
+                Создать
+              </Button>
+            </Stack>
+          </form>
         </Stack>
       </Container>
       <Modal

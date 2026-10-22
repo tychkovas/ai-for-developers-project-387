@@ -138,6 +138,19 @@ test('SDK createEventType: успех 200, дубль id — 409 id_taken', asyn
   expect(duplicate.error).toMatchObject({ code: 'id_taken' });
 });
 
+test.each(['ивент', 'my id', 'my$id'])(
+  'SDK createEventType: некорректный id «%s» — 400 validation_failed',
+  async (id) => {
+    const result = await createEventType({
+      body: { id, name: 'Разбор', description: 'Разбор вопросов', durationMinutes: 20 },
+    });
+
+    expect(result.response?.status).toBe(400);
+    expect(result.error).toMatchObject({ code: 'validation_failed' });
+    expect(result.error?.message).toBe('id: латиница, цифры, дефис');
+  },
+);
+
 test('SDK getAvailableSlots: рабочий день внутри окна — 200, старты по сетке с 10:00', async () => {
   const { data, response } = await getAvailableSlots({
     path: { id: '15-min' },
