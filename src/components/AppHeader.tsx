@@ -1,9 +1,12 @@
-// Общий хедер приложения (дизайн, docs/design/booking-app.md):
-// на витрине — название сервиса и кнопка «Админка» (→ /admin).
+// Общий хедер приложения (дизайн, docs/design/booking-app.md; спека, раздел 5):
+// название сервиса ведёт на витрину; кнопка справа — «Админка» на всех
+// экранах, кроме самой панели владельца, где она меняется на «Назад к витрине».
 import { Anchor, Button, Container, Group } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export function AppHeader() {
+  const { pathname } = useLocation();
+  const onAdmin = pathname === '/admin';
   return (
     <Container size="md" py="md">
       <Group justify="space-between">
@@ -17,10 +20,14 @@ export function AppHeader() {
         >
           Календарь звонков
         </Anchor>
-        <Button variant="outline" size="sm" component={Link} to="/admin">
-          Админка
+        <Button
+          variant="outline"
+          size="sm"
+          component={Link}
+          to={onAdmin ? '/' : '/admin'}
+        >
+          {onAdmin ? 'Назад к витрине' : 'Админка'}
         </Button>
-      </Group>
-    </Container>
+      </Group>    </Container>
   );
 }

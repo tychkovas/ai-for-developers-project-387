@@ -1,6 +1,6 @@
 // Тесты приложения как чёрного ящика (шов «приложение как чёрный ящик»):
 // витрина, хедер, каталог типов события из демо-seed, выбор слота, форма
-// записи, экран успеха, маршруты.
+// записи, экран успеха, панель владельца, маршруты.
 // Данные приходят так же, как в живом приложении: компоненты зовут
 // сгенерированный SDK, запросы перехватывает мок-сервер; маршруты —
 // через history.pushState, проверки — по role/text.
@@ -9,6 +9,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react';
 import dayjs from 'dayjs';
@@ -368,4 +369,139 @@ test.each([
 
   expect(await screen.findByRole('heading', { level: 1, name: 'Встреча 15 минут' })).toBeTruthy();
   expect(window.location.pathname).toBe('/book/15-min');
+});
+
+// ——— Панель владельца /admin (тикет #23, спека раздел 6.6) ———
+
+/** Первый рабочий день после сегодняшнего — ключ 'YYYY-MM-DD' (день demo-записей). */
+function firstSeedDay() {
+  const key = bookingWindowDays()
+    .slice(1)
+    .find((date) => !isWeekendDay(date));
+  if (key === undefined) {
+    throw new Error('в окне нет рабочих дней');
+  }
+  return key;
+}
+
+test('admin: записи всех типов в одном списке по возрастанию начала', async () => {
+  renderAt('/admin');
+
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'Предстоящие события' }),
+  ).toBeTruthy();
+  // Три записи demo-seed в одном списке; ближайшая сверху: 15 → 30 → 15 минут.
+  const names = await screen.findAllByText(/^Встреча \d+ минут$/);
+  expect(names.map((element) => element.textContent)).toEqual([
+    'Встреча 15 минут',
+    'Встреча 30 минут',
+    'Встреча 15 минут',
+  ]);
+  // Строка записи: имя гостя, email и интервал вида «22 октября, 11:00–11:15».
+  expect(screen.getAllByText('Demo User')).toHaveLength(3);
+  expect(screen.getAllByText('demo@example.com')).toHaveLength(3);
+  const intervals = screen.getAllByText(/\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
+  expect(intervals).toHaveLength(3);
+  expect(intervals[0].textContent).toContain('11:00–11:15');
+  expect(screen.getAllByRole('button', { name: 'Отменить' })).toHaveLength(3);
+});
+
+test('admin: хедер панели — «Назад к витрине» вместо «Админка», ведёт на /', async () => {
+  renderAt('/admin');
+  await screen.findByRole('heading', { level: 1, name: 'Предстоящие события' });
+
+  expect(screen.getByRole('link', { name: 'Назад к витрине' }).getAttribute('href')).toBe('/');
+  expect(screen.queryByRole('link', { name: 'Админка' })).toBeNull();
+});
+
+test('admin: прошедшие записи не показываются, идущая сейчас видна', async () => {
+  // Данные напрямую в хранилище (шов «данные через localStorage»): прошедшая
+  // и идущая сейчас записи — так детерминировать «сейчас» проще, чем seed'ом.
+  localStorage.setItem(
+    'call-scheduling:event-types',
+    JSON.stringify([
+      {
+        id: '15-min',
+        name: 'Встреча 15 минут',
+        description: 'Короткий созвон на 15 минут',
+        durationMinutes: 15,
+      },
+    ]),
+  );
+  const now = Date.now();
+  localStorage.setItem(
+    'call-scheduling:bookings',
+    JSON.stringify([
+      {
+        id: 'past-1',
+        eventTypeId: '15-min',
+        start: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+        end: new Date(now - 2 * 60 * 60 * 1000 + 15 * 60_000).toISOString(),
+        guestName: 'Прошедший гость',
+        guestEmail: 'past@example.com',
+      },
+      {
+        id: 'running-1',
+        eventTypeId: '15-min',
+        start: new Date(now - 5 * 60_000).toISOString(),
+        end: new Date(now + 10 * 60_000).toISOString(),
+        guestName: 'Идёт сейчас',
+        guestEmail: 'now@example.com',
+      },
+    ]),
+  );
+
+  renderAt('/admin');
+
+  expect(await screen.findByText('Идёт сейчас')).toBeTruthy();
+  expect(screen.queryByText('Прошедший гость')).toBeNull();
+});
+
+test('admin: нет предстоящих записей — «Нет предстоящих записей»', async () => {
+  // Пустой список напрямую в хранилище: guard seed не перезаписывает данные.
+  localStorage.setItem('call-scheduling:bookings', '[]');
+
+  renderAt('/admin');
+
+  expect(await screen.findByText('Нет предстоящих записей')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Отменить' })).toBeNull();
+});
+
+test('admin: «Отменить» открывает модалку, «Оставить» закрывает без изменений', async () => {
+  renderAt('/admin');
+  await screen.findAllByRole('button', { name: 'Отменить' });
+
+  fireEvent.click(screen.getAllByRole('button', { name: 'Отменить' })[0]);
+
+  expect(await screen.findByText('Отменить запись?')).toBeTruthy();
+  expect(screen.getByText('Слот сразу освободится. Действие необратимо.')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Отменить запись' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Оставить' }));
+
+  // Модалка закрывается с анимацией — ждём, пока уйдёт из DOM.
+  await waitFor(() => expect(screen.queryByText('Отменить запись?')).toBeNull());
+  expect(screen.getAllByRole('button', { name: 'Отменить' })).toHaveLength(3);
+  expect(getBookings()).toHaveLength(3);
+});
+
+test('admin: подтверждение отмены удаляет запись и освобождает слот', async () => {
+  renderAt('/admin');
+  await screen.findAllByRole('button', { name: 'Отменить' });
+  const day = firstSeedDay();
+  const offersAt1100 = () =>
+    getAvailableSlots('15-min', day)?.some((slot) => dayjs(slot.start).format('HH:mm') === '11:00');
+  // demo-1 (11:00–11:15 первого рабочего дня) занимает слот.
+  expect(offersAt1100()).toBe(false);
+
+  // Первая строка — ближайшая запись (demo-1); подтверждаем отмену в модалке.
+  fireEvent.click(screen.getAllByRole('button', { name: 'Отменить' })[0]);
+  fireEvent.click(await screen.findByRole('button', { name: 'Отменить запись' }));
+
+  await waitFor(() =>
+    expect(screen.getAllByRole('button', { name: 'Отменить' })).toHaveLength(2),
+  );
+  await waitFor(() => expect(screen.queryByText('Отменить запись?')).toBeNull());
+  expect(getBookings().map((booking) => booking.id)).toEqual(['demo-2', 'demo-3']);
+  // Слот снова доступен гостю.
+  expect(offersAt1100()).toBe(true);
 });

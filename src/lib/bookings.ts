@@ -30,6 +30,8 @@ export type CreateBookingResult =
   | { ok: true; booking: Booking }
   | { ok: false; error: 'not_found' | 'slot_taken' };
 
+export type CancelBookingResult = { ok: true } | { ok: false; error: 'not_found' };
+
 function readList<T>(key: string): T[] {
   const raw = localStorage.getItem(key);
   return raw === null ? [] : (JSON.parse(raw) as T[]);
@@ -102,6 +104,20 @@ export function createBooking(
   };
   writeList<Booking>(BOOKINGS_KEY, [...getBookings(), booking]);
   return { ok: true, booking };
+}
+
+/**
+ * Отмена записи владельцем календаря: полное удаление, слот мгновенно
+ * освобождается (контракт cancelBooking, спека раздел 6.6). Неизвестный
+ * id — not_found; список не меняется.
+ */
+export function cancelBooking(id: string): CancelBookingResult {
+  const bookings = getBookings();
+  if (!bookings.some((booking) => booking.id === id)) {
+    return { ok: false, error: 'not_found' };
+  }
+  writeList(BOOKINGS_KEY, bookings.filter((booking) => booking.id !== id));
+  return { ok: true };
 }
 
 // ——— Генерация свободных слотов (тикет #21, спека разделы 3 и 6.3) ———

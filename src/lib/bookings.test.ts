@@ -1,11 +1,12 @@
 // Юнит-тесты модуля данных календаря — имитации сервера (шов «модуль данных»,
 // спека раздел 8). Операции и коды ошибок зеркалят утверждённый API-контракт
-// (spec/main.tsp): createBooking/createEventType/getAvailableSlots,
+// (spec/main.tsp): createBooking/createEventType/getAvailableSlots/cancelBooking,
 // not_found/id_taken/slot_taken. Внешняя зависимость — время — внедряется
 // параметром now (граница системы).
 import { beforeEach, expect, test } from 'vitest';
 import {
   bookingWindowDays,
+  cancelBooking,
   createBooking,
   createEventType,
   ensureSeed,
@@ -407,4 +408,29 @@ test('getAvailableSlots: неизвестный тип события — null (
   ensureSeed(NOW);
 
   expect(getAvailableSlots('no-such-type', '2026-10-21', NOW)).toBeNull();
+});
+
+// ——— Отмена записи (тикет #23, спека раздел 6.6) ———
+
+test('cancelBooking: удаляет запись целиком, слот мгновенно освобождается', () => {
+  ensureSeed(NOW);
+
+  const result = cancelBooking('demo-1');
+
+  expect(result).toEqual({ ok: true });
+  expect(getBookings().map((booking) => booking.id)).toEqual(['demo-2', 'demo-3']);
+  // Освободившийся слот 11:00–11:15 снова предлагается гостю.
+  const starts = getAvailableSlots('15-min', '2026-10-22', NOW)?.map(
+    (slot) => new Date(slot.start).toISOString(),
+  );
+  expect(starts).toContain(new Date(2026, 9, 22, 11, 0).toISOString());
+});
+
+test('cancelBooking: неизвестный id — not_found, список не меняется', () => {
+  ensureSeed(NOW);
+
+  const result = cancelBooking('no-such-booking');
+
+  expect(result).toEqual({ ok: false, error: 'not_found' });
+  expect(getBookings()).toHaveLength(3);
 });

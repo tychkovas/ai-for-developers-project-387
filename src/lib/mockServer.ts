@@ -7,6 +7,7 @@
 import { client } from '../api/client.gen';
 import type { ErrorCode } from '../api/types.gen';
 import {
+  cancelBooking,
   createBooking,
   createEventType,
   ensureSeed,
@@ -150,7 +151,17 @@ async function handleRequest(request: Request, passThrough: (request: Request) =
     return handleBookingPost(request);
   }
 
-  // Остальные запросы (отмена записей #23, статика) — наружу,
+  // Отмена записи: полное удаление, слот мгновенно освобождается
+  // (тикет #23, контракт cancelBooking: 204 / 404 not_found).
+  if (method === 'DELETE' && path.startsWith('/bookings/')) {
+    const id = decodeURIComponent(path.slice('/bookings/'.length));
+    const result = cancelBooking(id);
+    return result.ok
+      ? new Response(null, { status: 204 })
+      : errorResponse('not_found', 404, 'Запись не найдена');
+  }
+
+  // Остальные запросы (статика) — наружу,
   // мок-сервер их не притворяется.
   return passThrough(request);
 }

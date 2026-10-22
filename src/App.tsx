@@ -5,7 +5,8 @@
 // и демо-seed — в мок-сервере, который ставит main.tsx (ADR-0002).
 // Маршруты (спека, docs/spec/app.md): / — витрина,
 // /events — каталог типов события, /book/:slug — выбор слота,
-// /book/:slug/confirm — форма записи, /success/:id — экран успеха.
+// /book/:slug/confirm — форма записи, /success/:id — экран успеха,
+// /admin — панель «Предстоящие события».
 import { MantineProvider } from '@mantine/core';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import HomePage from './pages/HomePage';
@@ -13,6 +14,7 @@ import EventsPage from './pages/EventsPage';
 import BookPage from './pages/BookPage';
 import ConfirmPage from './pages/ConfirmPage';
 import SuccessPage from './pages/SuccessPage';
+import AdminPage from './pages/AdminPage';
 
 export default function App() {
   return (
@@ -24,6 +26,7 @@ export default function App() {
           <Route path="/book/:slug" element={<BookPage />} />
           <Route path="/book/:slug/confirm" element={<ConfirmPage />} />
           <Route path="/success/:id" element={<SuccessPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

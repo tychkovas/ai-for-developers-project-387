@@ -1,9 +1,16 @@
 // Тесты шва «SDK через мок-сервер»: фронтенд ходит в данные только через
 // сгенерированный клиент hey-api, а перехватчик fetch маршрутизирует запросы
 // в модуль данных bookings.ts, отвечая по контракту (spec/main.tsp):
-// 200/400/404/409 и тело { code, message }.
+// 200/204/400/404/409 и тело { code, message }.
 import { beforeEach, expect, test } from 'vitest';
-import { createBooking, createEventType, getAvailableSlots, getEventTypes } from '../api';
+import {
+  cancelBooking,
+  createBooking,
+  createEventType,
+  getAvailableSlots,
+  getEventTypes,
+  listBookings,
+} from '../api';
 import { bookingWindowDays, isWeekendDay } from './bookings';
 import { installMockServer } from './mockServer';
 
@@ -176,4 +183,21 @@ test('SDK getAvailableSlots: неизвестный тип события — 40
 
   expect(result.response?.status).toBe(404);
   expect(result.error).toMatchObject({ code: 'not_found' });
+});
+
+test('SDK cancelBooking: отмена — 204 и запись исчезает, повторная — 404 not_found', async () => {
+  const listed = await listBookings();
+  expect(listed.response?.status).toBe(200);
+  const demo = listed.data?.find((booking) => booking.id === 'demo-1');
+  expect(demo).toBeTruthy();
+
+  const cancelled = await cancelBooking({ path: { id: 'demo-1' } });
+  expect(cancelled.response?.status).toBe(204);
+
+  const after = await listBookings();
+  expect(after.data?.map((booking) => booking.id)).toEqual(['demo-2', 'demo-3']);
+
+  const repeated = await cancelBooking({ path: { id: 'demo-1' } });
+  expect(repeated.response?.status).toBe(404);
+  expect(repeated.error).toMatchObject({ code: 'not_found' });
 });
