@@ -1,5 +1,6 @@
 // Тесты приложения как чёрного ящика (шов «приложение как чёрный ящик»):
-// витрина, хедер, каталог типов события из демо-seed, выбор слота, маршруты.
+// витрина, хедер, каталог типов события из демо-seed, выбор слота, форма
+// записи, экран успеха, маршруты.
 // Данные приходят так же, как в живом приложении: компоненты зовут
 // сгенерированный SDK, запросы перехватывает мок-сервер; маршруты —
 // через history.pushState, проверки — по role/text.
@@ -20,6 +21,7 @@ import {
   createEventType,
   ensureSeed,
   getAvailableSlots,
+  getBookings,
   isWeekendDay,
 } from './lib/bookings';
 
@@ -186,7 +188,7 @@ test('клик по слоту ведёт на /book/:slug/confirm?slot=…', as
   expect(window.location.pathname).toBe('/book/15-min/confirm');
   expect(window.location.search).toMatch(/^\?slot=/);
   expect(
-    await screen.findByRole('heading', { level: 1, name: 'Форма записи' }),
+    await screen.findByRole('heading', { level: 1, name: 'Запись' }),
   ).toBeTruthy();
   expect(screen.getByRole('link', { name: '← Выбор слота' }).getAttribute('href')).toBe(
     '/book/15-min',
@@ -239,4 +241,131 @@ test('полностью занятый день показывает «Нет �
 
   expect(await screen.findByText('Нет слотов на этот день')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^\d{1,2}:\d{2}$/ })).toBeNull();
+});
+
+// ——— Форма записи и экран успеха (тикет #22, спека разделы 6.4–6.5) ———
+
+/** Свободный слот «Встреча 15 минут» — так же, как гость выбрал его на /book/:slug. */
+function pickFreeSlot() {
+  ensureSeed();
+  const day = bookingWindowDays().find(
+    (date) => (getAvailableSlots('15-min', date)?.length ?? 0) > 0,
+  );
+  const slot = getAvailableSlots('15-min', day ?? '')?.[0];
+  if (slot === undefined) {
+    throw new Error('нет свободных слотов в окне записи');
+  }
+  return slot;
+}
+
+/** Открыть форму записи на заданном слоте и дождаться заголовка «Запись». */
+async function openConfirm(start: string) {
+  renderAt(`/book/15-min/confirm?slot=${encodeURIComponent(start)}`);
+  await screen.findByRole('heading', { level: 1, name: 'Запись' });
+}
+
+test('confirm: сводка показывает тип события, дату и интервал; «← Выбор слота» ведёт на /book/:slug', async () => {
+  const slot = pickFreeSlot();
+
+  await openConfirm(slot.start);
+
+  expect(screen.getByText('Встреча 15 минут')).toBeTruthy();
+  const interval = `${dayjs(slot.start).locale('ru').format('D MMMM')}, ${dayjs(slot.start).format('HH:mm')}–${dayjs(slot.end).format('HH:mm')}`;
+  expect(screen.getByText(interval)).toBeTruthy();
+  expect(screen.getByRole('link', { name: '← Выбор слота' }).getAttribute('href')).toBe(
+    '/book/15-min',
+  );
+});
+
+test('confirm: пустое имя и неверный формат email блокируют отправку', async () => {
+  const slot = pickFreeSlot();
+  await openConfirm(slot.start);
+
+  // Пустое имя: submit блокируется, форма остаётся на месте.
+  fireEvent.click(screen.getByRole('button', { name: 'Записаться' }));
+  expect(await screen.findByText('Введите имя')).toBeTruthy();
+  expect(window.location.pathname).toBe('/book/15-min/confirm');
+
+  // Неверный формат email: та же проверка, что у сервера.
+  fireEvent.change(screen.getByLabelText('Имя'), { target: { value: 'Иван' } });
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ivan(at)example' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Записаться' }));
+  expect(await screen.findByText('Введите корректный email')).toBeTruthy();
+  expect(window.location.pathname).toBe('/book/15-min/confirm');
+  // Запись не создана.
+  expect(getBookings().some((booking) => booking.guestEmail === 'ivan(at)example')).toBe(false);
+});
+
+test('confirm: валидная отправка создаёт запись и ведёт на /success/:id', async () => {
+  const slot = pickFreeSlot();
+  await openConfirm(slot.start);
+
+  fireEvent.change(screen.getByLabelText('Имя'), { target: { value: 'Иван Иванов' } });
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ivan@example.com' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Записаться' }));
+
+  // Успех: сводка из пяти пунктов созданной записи.
+  expect(await screen.findByRole('heading', { level: 1, name: 'Вы записаны!' })).toBeTruthy();
+  expect(window.location.pathname).toMatch(/^\/success\/.+$/);
+  expect(screen.getByText('Тип события: Встреча 15 минут')).toBeTruthy();
+  expect(
+    screen.getByText(`Дата: ${dayjs(slot.start).locale('ru').format('D MMMM')}`),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(`Время: ${dayjs(slot.start).format('HH:mm')}–${dayjs(slot.end).format('HH:mm')}`),
+  ).toBeTruthy();
+  expect(screen.getByText('Имя: Иван Иванов')).toBeTruthy();
+  expect(screen.getByText('Email: ivan@example.com')).toBeTruthy();
+  // Запись действительно создана в модуле данных.
+  expect(getBookings().some((booking) => booking.guestName === 'Иван Иванов')).toBe(true);
+
+  // «Записаться ещё» ведёт в каталог типов события.
+  fireEvent.click(screen.getByRole('link', { name: 'Записаться ещё' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Типы события' })).toBeTruthy();
+  expect(window.location.pathname).toBe('/events');
+});
+
+test('confirm: слот, занятый к моменту отправки, редиректит на /book/:slug', async () => {
+  const slot = pickFreeSlot();
+  await openConfirm(slot.start);
+  fireEvent.change(screen.getByLabelText('Имя'), { target: { value: 'Иван' } });
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ivan@example.com' } });
+
+  // «Другая вкладка» заняла тот же слот, пока гость заполнял форму (409 slot_taken).
+  createBooking({
+    eventTypeId: '15-min',
+    start: slot.start,
+    guestName: 'Другая вкладка',
+    guestEmail: 'other@example.com',
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Записаться' }));
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Встреча 15 минут' })).toBeTruthy();
+  expect(window.location.pathname).toBe('/book/15-min');
+  expect(getBookings().some((booking) => booking.guestName === 'Иван')).toBe(false);
+});
+
+test('confirm: слот, занятый к моменту открытия формы, редиректит на /book/:slug', async () => {
+  const slot = pickFreeSlot();
+  createBooking({
+    eventTypeId: '15-min',
+    start: slot.start,
+    guestName: 'Занятый слот',
+    guestEmail: 'busy@example.com',
+  });
+
+  renderAt(`/book/15-min/confirm?slot=${encodeURIComponent(slot.start)}`);
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Встреча 15 минут' })).toBeTruthy();
+  expect(window.location.pathname).toBe('/book/15-min');
+});
+
+test.each([
+  ['не-дата', 'not-a-date'],
+  ['прошедший', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()],
+])('confirm: %s slot в URL редиректит на /book/:slug', async (_case, slotValue) => {
+  renderAt(`/book/15-min/confirm?slot=${encodeURIComponent(slotValue)}`);
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Встреча 15 минут' })).toBeTruthy();
+  expect(window.location.pathname).toBe('/book/15-min');
 });
