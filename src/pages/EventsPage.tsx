@@ -5,6 +5,7 @@
 import { Button, Card, Container, Group, Stack, Text, Title } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { AppHeader } from '../components/AppHeader';
+import { LoadingRow } from '../components/LoadingRow';
 import { useEventTypes } from '../lib/useEventTypes';
 
 /** «15 минут» / «2 минуты» / «1 минута» — длительность на карточке. */
@@ -21,7 +22,7 @@ function formatDuration(durationMinutes: number): string {
 }
 
 export default function EventsPage() {
-  const eventTypes = useEventTypes();
+  const { eventTypes, loading } = useEventTypes();
 
   return (
     <>
@@ -29,6 +30,7 @@ export default function EventsPage() {
       <Container size="md" py="xl">
         <Stack gap="lg">
           <Title order={1}>Типы события</Title>
+          {loading && <LoadingRow />}
           {eventTypes.map((type) => (
             <Card
               key={type.id}

@@ -1,7 +1,8 @@
 // Тесты приложения как чёрного ящика (шов «приложение как чёрный ящик»):
 // витрина, хедер, каталог типов события из демо-seed, маршрутизация.
-// Данные — через localStorage, маршруты — через history.pushState,
-// проверки — по role/text.
+// Данные приходят так же, как в живом приложении: компоненты зовут
+// сгенерированный SDK, запросы перехватывает мок-сервер; маршруты —
+// через history.pushState, проверки — по role/text.
 import {
   cleanup,
   fireEvent,
@@ -60,12 +61,10 @@ test('CTA переводит на каталог типов события', asy
   expect(window.location.pathname).toBe('/events');
 });
 
-test('каталог: карточки seed-типов в порядке возрастания длительности', () => {
+test('каталог: карточки seed-типов в порядке возрастания длительности', async () => {
   renderAt('/events');
 
-  const cards = screen
-    .getAllByRole('link')
-    .filter((link) => (link.getAttribute('href') ?? '').startsWith('/book/'));
+  const cards = await screen.findAllByRole('link', { name: /Встреча \d+ минут/ });
   expect(cards.map((card) => card.getAttribute('href'))).toEqual([
     '/book/15-min',
     '/book/30-min',
@@ -80,7 +79,8 @@ test('каталог: карточки seed-типов в порядке воз�
 test('клик по карточке ведёт на /book/:slug', async () => {
   renderAt('/events');
 
-  fireEvent.click(screen.getByRole('link', { name: /Встреча 15 минут/ }));
+  const card = await screen.findByRole('link', { name: /Встреча 15 минут/ });
+  fireEvent.click(card);
 
   expect(window.location.pathname).toBe('/book/15-min');
   expect(
@@ -88,20 +88,20 @@ test('клик по карточке ведёт на /book/:slug', async () => {
   ).toBeTruthy();
 });
 
-test('клик по кнопке «Записаться» ведёт на /book/:slug', () => {
+test('клик по кнопке «Записаться» ведёт на /book/:slug', async () => {
   renderAt('/events');
 
-  const card = screen.getByRole('link', { name: /Встреча 30 минут/ });
+  const card = await screen.findByRole('link', { name: /Встреча 30 минут/ });
   fireEvent.click(within(card).getByText('Записаться'));
 
   expect(window.location.pathname).toBe('/book/30-min');
 });
 
-test('неизвестный :slug молча редиректит на каталог', () => {
+test('неизвестный :slug молча редиректит на каталог', async () => {
   renderAt('/book/no-such-type');
 
   expect(
-    screen.getByRole('heading', { level: 1, name: 'Типы события' }),
+    await screen.findByRole('heading', { level: 1, name: 'Типы события' }),
   ).toBeTruthy();
   expect(window.location.pathname).toBe('/events');
 });

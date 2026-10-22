@@ -1,47 +1,15 @@
-// Единый модуль данных календаря — имитация сервера (ADR-0001, спека раздел 8).
-// Операции и машиночитаемые коды ошибок зеркалят утверждённый API-контракт
-// (spec/main.tsp: getEventTypes, createEventType, createBooking; not_found /
-// id_taken / slot_taken). Все записи идут через create*-операции с валидацией —
-// конфликты слотов проверяются здесь, «на бэкенде», а не в UI. Когда появится
-// живой бэкенд по этому контракту (ADR-0002), модуль заменяется на SDK.
-// UI не трогает localStorage напрямую — только через этот модуль и тонкий хук.
+// Единый модуль данных календаря — домен мок-сервера (ADR-0001, спека раздел 8).
+// Типы зеркалят утверждённый API-контракт (spec/main.tsp) — берутся напрямую
+// из сгенерированных типов SDK. Операции и машиночитаемые коды ошибок
+// (not_found / id_taken / slot_taken) повторяют контрактные; HTTP-статусы
+// выставляет адаптер src/lib/mockServer.ts, который перехватывает запросы
+// сгенерированного SDK (ADR-0002 — живого бэкенда нет). Конфликты слотов
+// проверяются здесь, «на бэкенде», — не в UI. Хранение — localStorage.
+
+import type { Booking, CreateBooking, CreateEventType, EventType } from '../api/types.gen';
 
 const EVENT_TYPES_KEY = 'call-scheduling:event-types';
 const BOOKINGS_KEY = 'call-scheduling:bookings';
-
-/** Тип события — зеркало контрактного EventType; id = слаг маршрута /book/:slug. */
-export interface EventType {
-  id: string;
-  name: string;
-  description: string;
-  durationMinutes: number;
-}
-
-/** Запись — зеркало контрактного Booking; start/end — локальное время в ISO. */
-export interface Booking {
-  id: string;
-  eventTypeId: string;
-  start: string;
-  end: string;
-  guestName: string;
-  guestEmail: string;
-}
-
-/** Тело создания типа события — зеркало контрактного CreateEventType. */
-export interface CreateEventTypeInput {
-  id: string;
-  name: string;
-  description: string;
-  durationMinutes: number;
-}
-
-/** Тело создания записи — зеркало контрактного CreateBooking; end вычисляет «сервер». */
-export interface CreateBookingInput {
-  eventTypeId: string;
-  start: string;
-  guestName: string;
-  guestEmail: string;
-}
 
 export type CreateEventTypeResult =
   | { ok: true; eventType: EventType }
@@ -67,12 +35,18 @@ export function getEventTypes(): EventType[] {
   );
 }
 
+/**
+ * Записи (контракт listBookings: порядок — по возрастанию начала).
+ * Пересечения в createBooking проверяются независимо от порядка.
+ */
 export function getBookings(): Booking[] {
-  return readList<Booking>(BOOKINGS_KEY);
+  return readList<Booking>(BOOKINGS_KEY).sort(
+    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+  );
 }
 
 /** Создание типа события владельцем; дубль id отклоняется как «конфликт». */
-export function createEventType(input: CreateEventTypeInput): CreateEventTypeResult {
+export function createEventType(input: CreateEventType): CreateEventTypeResult {
   if (getEventTypes().some((eventType) => eventType.id === input.id)) {
     return { ok: false, error: 'id_taken' };
   }
@@ -87,7 +61,7 @@ export function createEventType(input: CreateEventTypeInput): CreateEventTypeRes
  * другого типа события, спека раздел 3) — slot_taken; касание границ разрешено.
  */
 export function createBooking(
-  input: CreateBookingInput,
+  input: CreateBooking,
   now: Date = new Date(),
 ): CreateBookingResult {
   const eventType = getEventTypes().find((type) => type.id === input.eventTypeId);

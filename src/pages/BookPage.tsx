@@ -5,13 +5,15 @@
 import { Anchor, Container, Stack, Text, Title } from '@mantine/core';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { AppHeader } from '../components/AppHeader';
+import { LoadingRow } from '../components/LoadingRow';
 import { useEventTypes } from '../lib/useEventTypes';
 
 export default function BookPage() {
   const { slug } = useParams();
-  const eventType = useEventTypes().find((type) => type.id === slug);
+  const { eventTypes, loading } = useEventTypes();
+  const eventType = eventTypes.find((type) => type.id === slug);
 
-  if (!eventType) {
+  if (!loading && !eventType) {
     return <Navigate to="/events" replace />;
   }
 
@@ -23,10 +25,16 @@ export default function BookPage() {
           <Anchor component={Link} to="/events" underline="never" size="sm">
             ← Типы события
           </Anchor>
-          <Title order={1}>{eventType.name}</Title>
-          <Text c="dimmed">
-            Выбор даты и слота появится здесь — экран в разработке.
-          </Text>
+          {eventType ? (
+            <>
+              <Title order={1}>{eventType.name}</Title>
+              <Text c="dimmed">
+                Выбор даты и слота появится здесь — экран в разработке.
+              </Text>
+            </>
+          ) : (
+            <LoadingRow />
+          )}
         </Stack>
       </Container>
     </>

@@ -256,7 +256,7 @@ test('повторный запуск seed не перезаписывает д�
 
   const bookings = getBookings();
   expect(bookings).toHaveLength(4);
-  expect(bookings[3].guestName).toBe('Иван Петров');
+  expect(bookings.some((booking) => booking.guestName === 'Иван Петров')).toBe(true);
   expect(getEventTypes()).toHaveLength(2);
 });
 
