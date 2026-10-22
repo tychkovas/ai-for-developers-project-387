@@ -43,6 +43,8 @@ make test
 
 ## Docker и деплой
 
+Приложение задеплоено на [Render](https://dashboard.render.com/web/srv-dbd3qtoae00c73chq6g0) (Web Service, runtime Docker): https://ai-for-developers-project-386-3x53.onrender.com
+
 Приложение упаковано в Docker-образ: фронтенд собирается на первом этапе, а на втором копируются собранная статика, сервер статики (`serve.mjs`) и production-зависимости.
 
 ```bash
