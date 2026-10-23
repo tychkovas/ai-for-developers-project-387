@@ -1,0 +1,15 @@
+# Не попадает в контекст сборки образа.
+node_modules
+dist
+.git
+.github
+.agents
+docs
+spec
+# Сгенерированные артефакты openapi-generator (не нужны в контексте образа).
+/server/
+scripts
+*.log
+.DS_Store
+Dockerfile
+.dockerignore
