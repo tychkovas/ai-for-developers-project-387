@@ -1,0 +1,8 @@
+# Конфигурация компиляции TypeSpec (карта #8, тикет #12).
+# Эмит OpenAPI 3.0 (дефолт) в YAML: spec/main.tsp -> docs/openapi.yaml.
+emit:
+  - "@typespec/openapi3"
+options:
+  "@typespec/openapi3":
+    emitter-output-dir: "{project-root}/../docs"
+    output-file: openapi.yaml
