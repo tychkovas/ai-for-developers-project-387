@@ -1,0 +1,14 @@
+# Render Blueprint — декларативное описание деплоя (https://render.com/docs/blueprint-spec).
+# Файл описывает тот же сервис, что создан в дашборде:
+# https://dashboard.render.com/web/srv-dbef5v67bikc7388h4kg
+services:
+  - type: web
+    name: ai-for-developers-project-387
+    runtime: docker
+    plan: free
+    region: oregon
+    repo: https://github.com/tychkovas/ai-for-developers-project-387
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
