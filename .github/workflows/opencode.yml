@@ -31,3 +31,5 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
         with:
           model: opencode/deepseek-v4.1-flash
+          prompt: |
+            Analyze the issue or pull request, but ALL your responses, explanations, and comments MUST be written strictly in the Russian language. Do not output text in English. Все ответы, ревью и комментарии формируй только на русском языке.
