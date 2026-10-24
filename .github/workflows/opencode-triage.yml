@@ -38,7 +38,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
         with:
-          model: opencode/mimo-v2.6-flash-free
+          model: opencode/deepseek-v4.1-flash
           prompt: |
             Review this issue. If there's a clear fix or relevant docs:
             - Provide documentation links
