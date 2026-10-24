@@ -45,7 +45,9 @@ make test
 
 ## Docker и деплой
 
-Приложение задеплоено на [Render](https://dashboard.render.com/web/srv-dbd3qtoae00c73chq6g0) (Web Service, runtime Docker): https://ai-for-developers-project-386-3x53.onrender.com
+Приложение задеплоено на [Render](https://dashboard.render.com/web/srv-dbef5v67bikc7388h4kg) (Web Service, runtime Docker): https://ai-for-developers-project-387-pqz0.onrender.com
+
+Конфигурация сервиса описана в [`render.yaml`](./render.yaml) (Render Blueprint): тип, runtime, план, регион, ветка и путь к Dockerfile. Правки деплоя идут через ревью вместе с кодом, а не остаются только в дашборде.
 
 Приложение упаковано в Docker-образ: фронтенд собирается на первом этапе, а на втором копируются собранная статика, сервер статики (`serve.mjs`) и production-зависимости.
 
