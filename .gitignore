@@ -25,3 +25,4 @@ dist-ssr
 
 # Генерируемое содержимое скилов (восстанавливается из skills-lock.json)
 .agents/
+.cursor/
