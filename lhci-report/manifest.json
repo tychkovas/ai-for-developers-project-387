@@ -1,0 +1,15 @@
+[
+  {
+    "url": "https://ai-for-developers-project-387-pqz0.onrender.com/",
+    "isRepresentativeRun": true,
+    "htmlPath": "/home/runner/work/ai-for-developers-project-387/ai-for-developers-project-387/lhci-report/ai_for_developers_project_387_pqz0_onrender_com-_-2026_10_25_15_10_41.report.html",
+    "jsonPath": "/home/runner/work/ai-for-developers-project-387/ai-for-developers-project-387/lhci-report/ai_for_developers_project_387_pqz0_onrender_com-_-2026_10_25_15_10_41.report.json",
+    "summary": {
+      "performance": 0.97,
+      "accessibility": 0.88,
+      "best-practices": 1,
+      "seo": 0.83,
+      "pwa": 0.38
+    }
+  }
+]
