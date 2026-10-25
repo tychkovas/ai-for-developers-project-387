@@ -19,7 +19,6 @@ import {
 import { Calendar } from '@mantine/dates';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { AppHeader } from '../components/AppHeader';
 import { LoadingRow } from '../components/LoadingRow';
 import { isWeekendDay, bookingWindowDays, toDateKey } from '../lib/bookings';
 import { formatDayMonth, formatTime } from '../lib/format';
@@ -56,7 +55,6 @@ export default function BookPage() {
 
   return (
     <>
-      <AppHeader />
       <Container size="md" py="xl">
         <Stack gap="lg">
           <Anchor component={Link} to="/events" underline="never" size="sm">

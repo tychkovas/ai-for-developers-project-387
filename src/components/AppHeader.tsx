@@ -8,8 +8,8 @@ export function AppHeader() {
   const { pathname } = useLocation();
   const onAdmin = pathname === '/admin';
   return (
-    <Container size="md" py="md">
-      <Group justify="space-between">
+    <Container size="md" h="100%">
+      <Group justify="space-between" h="100%">
         <Anchor
           component={Link}
           to="/"
@@ -28,6 +28,7 @@ export function AppHeader() {
         >
           {onAdmin ? 'Назад к витрине' : 'Админка'}
         </Button>
-      </Group>    </Container>
+      </Group>
+    </Container>
   );
 }

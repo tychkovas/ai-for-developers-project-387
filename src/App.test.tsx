@@ -64,6 +64,14 @@ test('хедер: название ведёт на /, кнопка «Админ�
   expect(screen.getByRole('link', { name: 'Админка' }).getAttribute('href')).toBe('/admin');
 });
 
+test.each(['/', '/events', '/admin'])('футер на %s: копирайт с текущим годом', (path) => {
+  renderAt(path);
+
+  expect(
+    screen.getByText(`© ${new Date().getFullYear()} Календарь звонков`),
+  ).toBeTruthy();
+});
+
 test('CTA переводит на каталог типов события', async () => {
   render(<App />);
 
