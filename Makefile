@@ -1,8 +1,6 @@
-.PHONY: help install dev build preview lint test commitlint openapi sdk server generate docker docker-run
+.PHONY: help install dev build preview lint test openapi sdk server generate docker docker-run
 
 IMAGE := call-scheduling:latest
-FROM ?= $(shell git rev-parse --verify -q HEAD~1 || git rev-list --max-parents=0 HEAD)
-TO ?= HEAD
 
 help: ## Показать список целей
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -21,9 +19,6 @@ preview: build ## Показать продакшен-сборку локаль�
 
 lint: ## Запустить линтер (oxlint)
 	npm run lint
-
-commitlint: ## Проверить сообщения коммитов в диапазоне FROM..TO
-	npx commitlint --from $(FROM) --to $(TO) --verbose
 
 openapi: ## Сгенерировать OpenAPI из TypeSpec-контракта (spec/ -> docs/openapi.yaml)
 	cd spec && npx tsp compile .

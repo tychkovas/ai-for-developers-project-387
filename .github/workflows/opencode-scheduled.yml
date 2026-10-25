@@ -26,4 +26,4 @@ jobs:
             Review the codebase for any TODO comments and create a summary.
             If you find issues worth addressing, open an issue to track them.
             Все ответы, ревью и комментарии формируй только на русском языке.
-            Комментарии и ревью — на русском. Сообщения коммитов и заголовки PR — строго Conventional Commits на английском: `<type>(<scope>): <description>`. Не переводи заголовок PR на русский: при squash-merge он становится сообщением коммита.
+            Output all responses in Russian. Commit messages and PR titles must follow Conventional Commits in English.
