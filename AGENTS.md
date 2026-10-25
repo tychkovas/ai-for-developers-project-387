@@ -18,16 +18,22 @@ SPA для бронирования звонков (упрощённый Cal.com
 ## Тесты
 
 - Компонентные тесты — vitest + @testing-library/react (`src/App.test.tsx`); окружение jsdom настроено в `vite.config.ts` (`test.environment`, `setupFiles: src/test/setup.ts` — мок `window.matchMedia` для MantineProvider).
+- Правила Conventional Commits покрыты `scripts/conventional-commits.test.mjs`; сами скрипты проверки/нормализации — `scripts/check-commit-subjects.mjs` и `scripts/normalize-opencode-commit.mjs`.
 - Globals в vitest выключены: `test`/`expect` импортируются в каждом файле, `cleanup()` и сброс history — вручную в `afterEach`.
 - `make test` = юнит-тесты + smoke-тест (`vite preview` из свежего `dist/`, поэтому сборка обязательна).
 
 ## CI
 
 - `.github/workflows/ci.yml`: lint → build → test → свежесть артефактов генерации (`make generate` + чистота git status по `docs/openapi.yaml`, `src/api`, `server/`) на каждый push/PR. Java в CI ставится явно (`actions/setup-java`, temurin 21).
-- `.github/workflows/pr-title.yml`: заголовок PR проверяется на Conventional Commits (`amannn/action-semantic-pull-request`); при squash-merge он становится сообщением коммита.
+- `.github/workflows/pr-title.yml`: заголовок PR проверяется на Conventional Commits с английским subject без кириллицы (`amannn/action-semantic-pull-request`); при squash-merge он становится сообщением коммита.
+- `.github/workflows/ci.yml`, job `commit-messages`: темы коммитов в PR/пуше проверяются на английский Conventional Commits (`make check-commits`, `scripts/check-commit-subjects.mjs`).
+- После `opencode` workflows шаг `scripts/normalize-opencode-commit.mjs` переписывает некорректные автоматические commit subject/PR title бота на `chore: apply opencode agent changes (#<issue>)`.
 - Не удаляй и не переименовывай `.github/workflows/hexlet-check.yml` и репозиторий — от них зависят проверки Хекслета.
 - Релизы автоматизированы release-please: тип commit-сообщения (`feat`/`fix`) определяет версию релиза.
 
 ## Коммиты
 
 - Строго Conventional Commits (`feat:`, `fix:`, `chore:` …), сообщения на английском. README и тексты UI — на русском.
+- Any short summary, commit subject, and PR title MUST be in English and formatted as `<type>: <subject>` (Conventional Commits), regardless of the conversation language.
+- Разрешённые типы: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
+- Некорректные автоматические коммиты бота нормализуются до `chore: apply opencode agent changes (#<issue>)`; темы коммитов проверяются в CI (`make check-commits`).

@@ -51,5 +51,5 @@ jobs:
             - Provide documentation links
             - Add error handling guidance for code examples
             Otherwise, do not comment.
-            Все ответы, ревью и комментарии формируй только на русском языке.
-            Output all responses in Russian. Commit messages and PR titles must follow Conventional Commits in English.
+            Все ответы, объяснения, ревью и комментарии формируй только на русском языке.
+            Автоматическое короткое summary, commit subject и PR title MUST be in English and follow Conventional Commits: `<type>: <subject>` (feat, fix, chore, docs, refactor, test, ci, build, style, perf, revert). Не используй русский язык в commit subject, PR title и автоматическом summary.
