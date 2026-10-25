@@ -1,0 +1,38 @@
+name: Render deploy check
+
+# autoDeploy в render.yaml уже запускает деплой на push в main;
+# этот workflow проверяет его статус через Render MCP и диагностирует сбои.
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  render-agent:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run opencode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        with:
+          model: opencode/deepseek-v4.1-flash
+          prompt: |
+            Используй инструменты render (Render MCP) для веб-сервиса ai-for-developers-project-387
+            (serviceId: srv-dbef5v67bikc7388h4kg):
+            1. list_deploys — найди деплой, запущенный последним push в main.
+            2. Проверь его статус через get_deploy.
+            3. Если деплой упал — разбери причину через list_events (build_ended, server_failed и т.п.)
+               и list_logs, сформулируй диагностику и рекомендации по исправлению.
+            4. Если деплой не запустился автоматически — вызови trigger_deploy.
+            Все ответы, отчёты и комментарии формируй только на русском языке.
