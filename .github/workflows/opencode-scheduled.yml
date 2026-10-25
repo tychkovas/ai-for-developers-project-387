@@ -26,3 +26,4 @@ jobs:
             Review the codebase for any TODO comments and create a summary.
             If you find issues worth addressing, open an issue to track them.
             Все ответы, ревью и комментарии формируй только на русском языке.
+            Output all responses in Russian. Commit messages and PR titles must follow Conventional Commits in English.

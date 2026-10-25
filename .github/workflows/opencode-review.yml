@@ -38,3 +38,4 @@ jobs:
             - Look for potential bugs
             - Suggest improvements
             Все ответы, ревью и комментарии формируй только на русском языке.
+            Output all responses in Russian. Commit messages and PR titles must follow Conventional Commits in English.

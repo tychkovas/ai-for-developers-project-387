@@ -24,6 +24,7 @@ SPA для бронирования звонков (упрощённый Cal.com
 ## CI
 
 - `.github/workflows/ci.yml`: lint → build → test → свежесть артефактов генерации (`make generate` + чистота git status по `docs/openapi.yaml`, `src/api`, `server/`) на каждый push/PR. Java в CI ставится явно (`actions/setup-java`, temurin 21).
+- `.github/workflows/pr-title.yml`: заголовок PR проверяется на Conventional Commits (`amannn/action-semantic-pull-request`); при squash-merge он становится сообщением коммита.
 - Не удаляй и не переименовывай `.github/workflows/hexlet-check.yml` и репозиторий — от них зависят проверки Хекслета.
 - Релизы автоматизированы release-please: тип commit-сообщения (`feat`/`fix`) определяет версию релиза.
 
