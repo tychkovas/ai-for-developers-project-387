@@ -26,6 +26,7 @@ export const theme = createTheme({
 // у MantineProvider (в Mantine 9 резолвер не входит в createTheme).
 export const cssVariablesResolver = () => ({
   variables: {},
+  // В тёмной теме дефолтные цвета Mantine уже проходят WCAG AA — переопределение не требуется.
   dark: {},
   light: {
     '--mantine-color-dimmed': 'var(--mantine-color-gray-7)',
