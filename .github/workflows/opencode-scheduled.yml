@@ -7,31 +7,18 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
+    # Промпт просит открыть issue, не коммитить и не открывать PR.
+    # issues: write — на создание задачи. contents: read — только checkout.
+    # Расписание не порождает комментарий, петли от ответа бота здесь нет.
     permissions:
       id-token: write
-      contents: write
-      pull-requests: write
+      contents: read
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-
-      - name: Record HEAD before opencode
-        id: before
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.issue.pull_request && github.event.issue.number }}
-        run: |
-          if [ -n "$PR_HEAD_SHA" ]; then
-            sha="$PR_HEAD_SHA"
-          elif [ -n "$PR_NUMBER" ]; then
-            sha=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq .head.sha)
-          else
-            sha=$(git rev-parse HEAD)
-          fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
@@ -44,13 +31,3 @@ jobs:
             If you find issues worth addressing, open an issue to track them.
             Все ответы, объяснения, ревью и комментарии формируй только на русском языке.
             Автоматическое короткое summary, commit subject и PR title MUST be in English and follow Conventional Commits: `<type>: <subject>` (feat, fix, chore, docs, refactor, test, ci, build, style, perf, revert). Не используй русский язык в commit subject, PR title и автоматическом summary.
-
-      - name: Normalize opencode commit and PR title
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          BASE_HEAD: ${{ steps.before.outputs.sha }}
-          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: node scripts/normalize-opencode-commit.mjs

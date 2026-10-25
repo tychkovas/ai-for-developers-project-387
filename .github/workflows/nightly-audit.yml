@@ -5,15 +5,18 @@ on:
     - cron: '8 17 * * *' # тестовый прогон: 17:08 UTC (~22:08 по Москве)
   workflow_dispatch: # Позволяет запускать проверку вручную
 
-permissions:
-  id-token: write
-  contents: write
-  pull-requests: write
-  issues: write
-
 jobs:
   audit:
     runs-on: ubuntu-latest
+    # Агент создаёт issue с отчётом (issues: write) и не коммитит.
+    # actions: write нужен шагу upload-artifact, не агенту.
+    # Расписание и workflow_dispatch не смотрят на комментарии — петли нет.
+    # workflow_dispatch доступен тем, у кого есть право запускать Actions.
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+      actions: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

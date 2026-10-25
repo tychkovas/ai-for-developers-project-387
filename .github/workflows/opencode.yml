@@ -8,17 +8,33 @@ on:
 
 jobs:
   opencode:
+    # Комментарий агента — тоже issue_comment. Без фильтра по отправителю
+    # ответ с /opencode или /oc снова ставит этот job в очередь.
+    # author_association: публичный репозиторий, звать агента могут только
+    # владелец, участник организации и явные коллабораторы. CONTRIBUTOR
+    # не входит: это любой, у кого уже есть коммит.
     if: |
-      contains(github.event.comment.body, ' /oc') ||
-      startsWith(github.event.comment.body, '/oc') ||
-      contains(github.event.comment.body, ' /opencode') ||
-      startsWith(github.event.comment.body, '/opencode')
+      github.event.sender.type != 'Bot' &&
+      !contains(github.event.comment.user.login, 'opencode') &&
+      (
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'
+      ) &&
+      (
+        contains(github.event.comment.body, ' /oc') ||
+        startsWith(github.event.comment.body, '/oc') ||
+        contains(github.event.comment.body, ' /opencode') ||
+        startsWith(github.event.comment.body, '/opencode')
+      )
     runs-on: ubuntu-latest
+    # contents и pull-requests: write — агент коммитит и открывает PR,
+    # а scripts/normalize-opencode-commit.mjs при сбое OIDC пушит и
+    # правит заголовок PR токеном раннера. issues агент здесь не создаёт.
     permissions:
       id-token: write
       contents: write
       pull-requests: write
-      issues: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -48,6 +64,7 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }} # нужен для Render MCP из opencode.json
         with:
           model: opencode/glm-5.3-flash
+          mentions: /opencode,/oc
           prompt: |
             Analyze the issue or pull request. Все ответы, объяснения, ревью и комментарии формируй только на русском языке.
             Автоматическое короткое summary, commit subject и PR title MUST be in English and follow Conventional Commits: `<type>: <subject>` (feat, fix, chore, docs, refactor, test, ci, build, style, perf, revert). Не используй русский язык в commit subject, PR title и автоматическом summary.

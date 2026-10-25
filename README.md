@@ -86,7 +86,7 @@ make server    # docs/openapi.yaml -> server/ (openapi-generator, нужен Jav
 
 ## Автоматическое ревью pull request
 
-На каждый pull request (`opened`, `synchronize`, `reopened`, `ready_for_review`) воркфлоу `.github/workflows/opencode-review.yml` запускает OpenCode: он читает diff и оставляет замечания к коду quality, потенциальным багам и несоответствиям конвенциям проекта (UI только на Mantine, проверки через `make lint` / `make build` / `make test`). Ревью работает в режиме только на чтение (`id-token: write`, `contents: read`): комментарии оставляет токен GitHub-приложения OpenCode (OIDC), агент ничего не коммитит и не пушит. Мержит и одобряет pull request по-прежнему человек. Для pull request, открытых агентом, ревью запускается вручную комментарием `/oc` (ограничение upstream: anomalyco/opencode#17224).
+На каждый pull request (`opened`, `synchronize`, `reopened`, `ready_for_review`) воркфлоу `.github/workflows/opencode-review.yml` запускает OpenCode: он читает diff и оставляет замечания к коду quality, потенциальным багам и несоответствиям конвенциям проекта (UI только на Mantine, проверки через `make lint` / `make build` / `make test`). Ревью работает в режиме только на чтение (`id-token: write`, `contents: read`): комментарии оставляет токен GitHub-приложения OpenCode (OIDC), агент ничего не коммитит и не пушит. Мержит и одобряет pull request по-прежнему человек. Для pull request, открытых агентом, ревью запускается вручную комментарием `/opencode` или `/oc` (ограничение upstream: anomalyco/opencode#17224).
 
 ---
 

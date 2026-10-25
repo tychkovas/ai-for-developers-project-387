@@ -10,14 +10,15 @@ jobs:
     # отдаёт 403 "Resource not accessible by integration" на создание комментариев
     # и реакций к PR (проверено на PR #24, хотя job имел Issues: write). Поэтому
     # ревью использует OIDC: OpenCode обменивает OIDC-токен на токен GitHub-приложения
-    # opencode-agent и комментирует им (тот же механизм, что у /oc в opencode.yml,
+    # opencode-agent и комментирует им (тот же механизм, что у /opencode и /oc в opencode.yml,
     # на нём замечания уже оставлены, например, на PR #23).
     # Также opencode (v1.19.4) в assertPermissions() проверяет context.actor и для
     # ботов получает permission: none (upstream: anomalyco/opencode#17224, #23915),
-    # поэтому PR, открытые ботом, пропускаются — для них ревью запускают комментарием /oc.
+    # поэтому PR, открытые ботом, пропускаются — для них ревью запускают комментарием /opencode или /oc.
+    # Событие pull_request, не комментарий: смотрим sender/actor, а не comment.user.
     if: >-
-      github.actor != 'opencode-agent[bot]' &&
-      github.actor != 'github-actions[bot]'
+      github.event.sender.type != 'Bot' &&
+      !contains(github.actor, 'opencode')
     runs-on: ubuntu-latest
     # Ревью только читает код и оставляет комментарии (токен приложения выдаётся
     # через OIDC), ничего не коммитит и не пушит.

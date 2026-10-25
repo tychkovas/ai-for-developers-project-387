@@ -7,17 +7,18 @@ on:
 jobs:
   triage:
     # Тот же upstream-баг assertPermissions(): для issue, созданных ботом
-    # (например, scheduled-workflow), проверка context.actor падает с
+    # (например, nightly-audit), проверка context.actor падает с
     # "does not have write permissions" (anomalyco/opencode#17224, #23915).
+    # Событие issues, не комментарий: comment.user здесь нет.
     if: >-
-      github.actor != 'opencode-agent[bot]' &&
-      github.actor != 'github-actions[bot]'
+      github.event.sender.type != 'Bot' &&
+      !contains(github.actor, 'opencode')
     runs-on: ubuntu-latest
+    # Комментарий к issue оставляет токен приложения (OIDC). Раннеру запись не нужна:
+    # шаг про возраст аккаунта ходит в публичный users API.
     permissions:
       id-token: write
       contents: read
-      pull-requests: read
-      issues: read
     steps:
       - name: Check account age
         id: check

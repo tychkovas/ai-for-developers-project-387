@@ -7,7 +7,7 @@ name: Render deploy check
 # Событие push не поддерживается opencode GitHub Action
 # ("Unsupported event type: push"), поэтому запуск только вручную.
 # Для быстрой реакции на падение деплоя (письмо от Render) можно не запускать
-# этот workflow, а написать /oc в issue: в opencode.yml агент тоже видит
+# этот workflow, а написать /opencode или /oc в issue: в opencode.yml агент тоже видит
 # render-инструменты и ответит диагностикой комментарием.
 on:
   workflow_dispatch:
