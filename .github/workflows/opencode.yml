@@ -34,3 +34,4 @@ jobs:
           model: opencode/deepseek-v4.1-flash
           prompt: |
             Analyze the issue or pull request, but ALL your responses, explanations, and comments MUST be written strictly in the Russian language. Do not output text in English. Все ответы, ревью и комментарии формируй только на русском языке.
+            Комментарии и ревью — на русском. Сообщения коммитов и заголовки PR — строго Conventional Commits на английском: `<type>(<scope>): <description>`. Не переводи заголовок PR на русский: при squash-merge он становится сообщением коммита.

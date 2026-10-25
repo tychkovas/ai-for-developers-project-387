@@ -24,6 +24,8 @@
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@hey-api/client-fetch": "0.13.1",
     "@hey-api/openapi-ts": "0.99.0",
     "@openapitools/openapi-generator-cli": "2.42.0",

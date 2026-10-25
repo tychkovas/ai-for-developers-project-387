@@ -38,3 +38,4 @@ jobs:
             - Look for potential bugs
             - Suggest improvements
             Все ответы, ревью и комментарии формируй только на русском языке.
+            Комментарии и ревью — на русском. Сообщения коммитов и заголовки PR — строго Conventional Commits на английском: `<type>(<scope>): <description>`. Не переводи заголовок PR на русский: при squash-merge он становится сообщением коммита.
