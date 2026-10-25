@@ -45,7 +45,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }} # нужен для Render MCP из opencode.json
         with:
-          model: opencode/deepseek-v4.1-flash
+          model: opencode/glm-5.3-flash
           prompt: |
             Review this issue. If there's a clear fix or relevant docs:
             - Provide documentation links
