@@ -25,7 +25,6 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useState } from 'react';
-import { AppHeader } from '../components/AppHeader';
 import { LoadingRow } from '../components/LoadingRow';
 import { cancelBooking, createEventType } from '../api';
 import type { Booking } from '../api';
@@ -101,7 +100,6 @@ export default function AdminPage() {
 
   return (
     <>
-      <AppHeader />
       <Container size="md" py="xl">
         <Stack gap="lg">
           <Title order={1}>Предстоящие события</Title>

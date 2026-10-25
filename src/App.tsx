@@ -6,9 +6,11 @@
 // Маршруты (спека, docs/spec/app.md): / — витрина,
 // /events — каталог типов события, /book/:slug — выбор слота,
 // /book/:slug/confirm — форма записи, /success/:id — экран успеха,
-// /admin — панель «Предстоящие события».
+// /admin — панель «Предстоящие события». Общие шапка и подвал —
+// в базовом макете AppLayout.
 import { MantineProvider } from '@mantine/core';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AppLayout } from './components/AppLayout';
 import HomePage from './pages/HomePage';
 import EventsPage from './pages/EventsPage';
 import BookPage from './pages/BookPage';
@@ -21,13 +23,15 @@ export default function App() {
     <MantineProvider defaultColorScheme="light">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/book/:slug" element={<BookPage />} />
-          <Route path="/book/:slug/confirm" element={<ConfirmPage />} />
-          <Route path="/success/:id" element={<SuccessPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/events" element={<EventsPage />} />
+            <Route path="/book/:slug" element={<BookPage />} />
+            <Route path="/book/:slug/confirm" element={<ConfirmPage />} />
+            <Route path="/success/:id" element={<SuccessPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </MantineProvider>

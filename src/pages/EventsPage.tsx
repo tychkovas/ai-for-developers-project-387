@@ -4,7 +4,6 @@
 // на /book/:id.
 import { Button, Card, Container, Group, Stack, Text, Title } from '@mantine/core';
 import { Link } from 'react-router-dom';
-import { AppHeader } from '../components/AppHeader';
 import { LoadingRow } from '../components/LoadingRow';
 import { useEventTypes } from '../lib/useEventTypes';
 
@@ -26,7 +25,6 @@ export default function EventsPage() {
 
   return (
     <>
-      <AppHeader />
       <Container size="md" py="xl">
         <Stack gap="lg">
           <Title order={1}>Типы события</Title>

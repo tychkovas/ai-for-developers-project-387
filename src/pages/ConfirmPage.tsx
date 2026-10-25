@@ -21,7 +21,6 @@ import {
 import { useForm } from '@mantine/form';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AppHeader } from '../components/AppHeader';
 import { LoadingRow } from '../components/LoadingRow';
 import { createBooking } from '../api';
 import { formatDayMonth, formatTimeRange } from '../lib/format';
@@ -91,7 +90,6 @@ export default function ConfirmPage() {
 
   return (
     <>
-      <AppHeader />
       <Container size="md" py="xl">
         <Stack gap="lg">
           {eventType && slot ? (

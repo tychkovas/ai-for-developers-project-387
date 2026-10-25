@@ -6,7 +6,6 @@
 // в каталог типов события.
 import { Button, Container, Paper, Stack, Text, Title } from '@mantine/core';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { AppHeader } from '../components/AppHeader';
 import { LoadingRow } from '../components/LoadingRow';
 import { formatDayMonth, formatTimeRange } from '../lib/format';
 import { useBooking } from '../lib/useBooking';
@@ -18,7 +17,6 @@ export default function SuccessPage() {
   if (loading) {
     return (
       <>
-        <AppHeader />
         <Container size="md" py="xl">
           <LoadingRow />
         </Container>
@@ -31,7 +29,6 @@ export default function SuccessPage() {
 
   return (
     <>
-      <AppHeader />
       <Container size="md" py="xl">
         <Stack gap="lg">
           <Title order={1}>Вы записаны!</Title>
