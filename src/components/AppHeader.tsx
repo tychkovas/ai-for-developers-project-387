@@ -1,7 +1,7 @@
 // Общий хедер приложения (дизайн, docs/design/booking-app.md; спека, раздел 5):
 // название сервиса ведёт на витрину; кнопка справа — «Админка» на всех
 // экранах, кроме самой панели владельца, где она меняется на «Назад к витрине».
-import { Anchor, Badge, Button, Container, Group } from '@mantine/core';
+import { Anchor, Badge, Button, Container, Group, Tooltip } from '@mantine/core';
 import { Link, useLocation } from 'react-router-dom';
 
 export function AppHeader() {
@@ -21,9 +21,11 @@ export function AppHeader() {
           >
             Календарь звонков
           </Anchor>
-          <Badge color="grape" variant="light" size="sm">
-            Beta
-          </Badge>
+          <Tooltip label="Сервис в бета-версии: функции могут меняться" withArrow>
+            <Badge color="grape" variant="light" size="xs">
+              Beta
+            </Badge>
+          </Tooltip>
         </Group>
         <Button
           variant="outline"
