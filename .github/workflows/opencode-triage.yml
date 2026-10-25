@@ -43,6 +43,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }} # нужен для Render MCP из opencode.json
         with:
           model: opencode/deepseek-v4.1-flash
           prompt: |

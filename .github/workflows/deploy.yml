@@ -1,15 +1,16 @@
 name: Render deploy check
 
-# autoDeploy в render.yaml уже запускает деплой на push в main;
-# этот workflow проверяет его статус через Render MCP и диагностирует сбои.
+# autoDeploy в render.yaml уже запускает деплой на push в main; этот workflow
+# по запросу проверяет результат последнего деплоя через Render MCP и
+# диагностирует сбои.
 #
 # Событие push не поддерживается opencode GitHub Action
-# ("Unsupported event type: push"), поэтому запускаем проверку вручную
-# (workflow_dispatch) и по расписанию.
+# ("Unsupported event type: push"), поэтому запуск только вручную.
+# Для быстрой реакции на падение деплоя (письмо от Render) можно не запускать
+# этот workflow, а написать /oc в issue: в opencode.yml агент тоже видит
+# render-инструменты и ответит диагностикой комментарием.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 8 * * *"
 
 jobs:
   render-agent:
@@ -34,9 +35,10 @@ jobs:
           prompt: |
             Используй инструменты render (Render MCP) для веб-сервиса ai-for-developers-project-387
             (serviceId: srv-dbef5v67bikc7388h4kg):
-            1. list_deploys — найди деплой, запущенный последним push в main.
+            1. list_deploys — найди самый свежий деплой сервиса.
             2. Проверь его статус через get_deploy.
             3. Если деплой упал — разбери причину через list_events (build_ended, server_failed и т.п.)
                и list_logs, сформулируй диагностику и рекомендации по исправлению.
-            4. Если деплой не запустился автоматически — вызови trigger_deploy.
+            4. trigger_deploy вызывай только если на main есть коммит свежее последнего успешного
+               деплоя и автодеплой его не подхватил; в остальных случаях деплой не трогай.
             Все ответы, отчёты и комментарии формируй только на русском языке.
