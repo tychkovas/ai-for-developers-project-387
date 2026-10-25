@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/tychkovas/ai-for-developers-project-387/compare/v1.0.0...v1.1.0) (2026-10-25)
+
+
+### Features
+
+* add AppLayout with footer copyright, update tests and docs ([#10](https://github.com/tychkovas/ai-for-developers-project-387/issues/10)) ([c529a62](https://github.com/tychkovas/ai-for-developers-project-387/commit/c529a6257f4c363c7bbc92cacf796f3f23375e20))
+* add Beta badge to app header ([#23](https://github.com/tychkovas/ai-for-developers-project-387/issues/23)) ([9b2330c](https://github.com/tychkovas/ai-for-developers-project-387/commit/9b2330caec8a9bf919d13568e0f15aebf63fbab5))
+
 ## 1.0.0 (2026-10-24)
 
 
