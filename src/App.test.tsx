@@ -55,12 +55,13 @@ test('витрина: заголовок, описание и CTA на /events',
   ).toBe('/events');
 });
 
-test('хедер: название ведёт на /, кнопка «Админка» — на /admin', () => {
+test('хедер: название ведёт на /, бейдж «Beta», кнопка «Админка» — на /admin', () => {
   render(<App />);
 
   expect(
     screen.getByRole('link', { name: 'Календарь звонков' }).getAttribute('href'),
   ).toBe('/');
+  expect(screen.getByText('Beta')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Админка' }).getAttribute('href')).toBe('/admin');
 });
 
