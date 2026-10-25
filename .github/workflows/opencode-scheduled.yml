@@ -1,0 +1,28 @@
+name: Scheduled OpenCode Task
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Every Monday at 9am UTC
+
+jobs:
+  opencode:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run opencode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
+        with:
+          model: opencode/deepseek-v4.1-flash
+          prompt: |
+            Review the codebase for any TODO comments and create a summary.
+            If you find issues worth addressing, open an issue to track them.
+            Все ответы, ревью и комментарии формируй только на русском языке.
