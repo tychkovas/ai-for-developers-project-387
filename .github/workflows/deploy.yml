@@ -2,10 +2,14 @@ name: Render deploy check
 
 # autoDeploy в render.yaml уже запускает деплой на push в main;
 # этот workflow проверяет его статус через Render MCP и диагностирует сбои.
+#
+# Событие push не поддерживается opencode GitHub Action
+# ("Unsupported event type: push"), поэтому запускаем проверку вручную
+# (workflow_dispatch) и по расписанию.
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
 
 jobs:
   render-agent:

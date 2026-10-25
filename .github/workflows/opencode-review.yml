@@ -6,6 +6,14 @@ on:
 
 jobs:
   review:
+    # opencode (v1.19.4) в assertPermissions() проверяет context.actor и для
+    # ботов всегда получает permission: none, из-за чего падают PR от ботов
+    # (opencode-agent[bot]): "User opencode-agent[bot] does not have write
+    # permissions" (upstream: anomalyco/opencode#17224, #23915).
+    # Реальный ревью-запуск для таких PR запускается вручную комментарием /oc.
+    if: >-
+      github.actor != 'opencode-agent[bot]' &&
+      github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
