@@ -20,6 +20,16 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Warm up Render service
+        # Бесплатный Render засыпает без запросов: прогреваем сервис перед замером,
+        # иначе Lighthouse может замерить холодный старт (до 60 с) или словить 503.
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "${{ vars.APP_URL }}" || true)
+            [ "$code" = "200" ] && break
+            sleep 10
+          done
+
       - name: Run Lighthouse Healthcheck
         run: |
           npx @lhci/cli@0.13.0 collect --url="${{ vars.APP_URL }}" --numberOfRuns=1
