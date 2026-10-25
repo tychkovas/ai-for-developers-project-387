@@ -12,6 +12,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ru';
 import { afterEach, beforeEach, expect, test } from 'vitest';
@@ -34,6 +35,9 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  // Хранилище тостов глобальное: без очистки уведомления предыдущего
+  // теста всплывают в следующем после монтирования <Notifications />.
+  notifications.clean();
   window.history.pushState(null, '', '/');
 });
 
@@ -314,8 +318,9 @@ test('confirm: валидная отправка создаёт запись и 
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ivan@example.com' } });
   fireEvent.click(screen.getByRole('button', { name: 'Записаться' }));
 
-  // Успех: сводка из пяти пунктов созданной записи.
+  // Успех: сводка из пяти пунктов созданной записи + тост (тикет #26).
   expect(await screen.findByRole('heading', { level: 1, name: 'Вы записаны!' })).toBeTruthy();
+  expect(await screen.findByText('Запись добавлена в календарь владельца')).toBeTruthy();
   expect(window.location.pathname).toMatch(/^\/success\/.+$/);
   expect(screen.getByText('Тип события: Встреча 15 минут')).toBeTruthy();
   expect(
@@ -561,10 +566,11 @@ test('admin: созданный тип появляется в каталоге 
   fillCreateForm();
   fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
 
-  // Успех: форма очищается; идём в каталог через хедер и CTA витрины.
+  // Успех: форма очищается, всплывает тост (тикет #26); идём в каталог через хедер и CTA витрины.
   await waitFor(() =>
     expect((screen.getByLabelText('id') as HTMLInputElement).value).toBe(''),
   );
+  expect(await screen.findByText('Тип события создан')).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Назад к витрине' }));
   fireEvent.click(await screen.findByRole('link', { name: 'Записаться на звонок' }));
 
