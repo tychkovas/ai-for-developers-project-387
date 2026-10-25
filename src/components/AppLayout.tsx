@@ -9,7 +9,7 @@ const currentYear = new Date().getFullYear();
 
 export function AppLayout() {
   return (
-    <AppShell header={{ height: 60 }} footer={{ height: 50 }}>
+    <AppShell header={{ height: 60 }} footer={{ height: 60 }}>
       <AppShell.Header>
         <AppHeader />
       </AppShell.Header>
@@ -17,9 +17,9 @@ export function AppLayout() {
         <Outlet />
       </AppShell.Main>
       <AppShell.Footer>
-        <Container size="md" h="100%">
-          <Group h="100%">
-            <Text size="xs" c="dimmed">
+        <Container size="md" pt="md" pb="xs">
+          <Group>
+            <Text size="sm" c="dimmed">
               {`© ${currentYear} Календарь звонков`}
             </Text>
           </Group>
