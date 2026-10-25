@@ -42,3 +42,4 @@ jobs:
             4. trigger_deploy вызывай только если на main есть коммит свежее последнего успешного
                деплоя и автодеплой его не подхватил; в остальных случаях деплой не трогай.
             Все ответы, отчёты и комментарии формируй только на русском языке.
+            Автоматическое короткое summary, commit subject и PR title MUST be in English and follow Conventional Commits: `<type>: <subject>` (feat, fix, chore, docs, refactor, test, ci, build, style, perf, revert). Не используй русский язык в commit subject, PR title и автоматическом summary.

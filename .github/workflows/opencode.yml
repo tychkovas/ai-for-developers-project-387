@@ -16,14 +16,30 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
-      pull-requests: read
+      contents: write
+      pull-requests: write
       issues: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+
+      - name: Record HEAD before opencode
+        id: before
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.issue.pull_request && github.event.issue.number }}
+        run: |
+          if [ -n "$PR_HEAD_SHA" ]; then
+            sha="$PR_HEAD_SHA"
+          elif [ -n "$PR_NUMBER" ]; then
+            sha=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq .head.sha)
+          else
+            sha=$(git rev-parse HEAD)
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
@@ -33,5 +49,15 @@ jobs:
         with:
           model: opencode/deepseek-v4.1-flash
           prompt: |
-            Analyze the issue or pull request, but ALL your responses, explanations, and comments MUST be written strictly in the Russian language. Do not output text in English. Все ответы, ревью и комментарии формируй только на русском языке.
-            Output all responses in Russian. Commit messages and PR titles must follow Conventional Commits in English.
+            Analyze the issue or pull request. Все ответы, объяснения, ревью и комментарии формируй только на русском языке.
+            Автоматическое короткое summary, commit subject и PR title MUST be in English and follow Conventional Commits: `<type>: <subject>` (feat, fix, chore, docs, refactor, test, ci, build, style, perf, revert). Не используй русский язык в commit subject, PR title и автоматическом summary.
+
+      - name: Normalize opencode commit and PR title
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BASE_HEAD: ${{ steps.before.outputs.sha }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node scripts/normalize-opencode-commit.mjs

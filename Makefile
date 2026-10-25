@@ -1,4 +1,4 @@
-.PHONY: help install dev build preview lint test openapi sdk server generate docker docker-run
+.PHONY: help install dev build preview lint test check-commits openapi sdk server generate docker docker-run
 
 IMAGE := call-scheduling:latest
 
@@ -37,6 +37,9 @@ generate: ## Перегенерировать всю цепочку артефа
 
 test: build ## Запустить тесты (нужен свежий dist/, поэтому сначала build)
 	npm test
+
+check-commits: ## Проверить темы коммитов в BASE_SHA..HEAD (по умолчанию origin/main..HEAD)
+	node scripts/check-commit-subjects.mjs
 
 docker: ## Собрать Docker-образ (фронтенд + сервер статики)
 	docker build -t $(IMAGE) .
