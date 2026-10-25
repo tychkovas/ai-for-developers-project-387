@@ -84,9 +84,22 @@ make server    # docs/openapi.yaml -> server/ (openapi-generator, нужен Jav
 
 Локальный просмотр продакшен-сборки: `make preview` (аналог `npm run preview`)
 
-## Автоматическое ревью pull request
+## Агенты OpenCode в GitHub
 
-На каждый pull request (`opened`, `synchronize`, `reopened`, `ready_for_review`) воркфлоу `.github/workflows/opencode-review.yml` запускает OpenCode: он читает diff и оставляет замечания к коду quality, потенциальным багам и несоответствиям конвенциям проекта (UI только на Mantine, проверки через `make lint` / `make build` / `make test`). Ревью работает в режиме только на чтение (`id-token: write`, `contents: read`): комментарии оставляет токен GitHub-приложения OpenCode (OIDC), агент ничего не коммитит и не пушит. Мержит и одобряет pull request по-прежнему человек. Для pull request, открытых агентом, ревью запускается вручную комментарием `/opencode` или `/oc` (ограничение upstream: anomalyco/opencode#17224).
+Интерактивный воркфлоу слушает комментарии к issue и pull request, но запускается только на команду `/opencode` или `/oc`: набор задан параметром `mentions`, а не дефолтом экшена. События от ботов пропускаются, иначе ответ агента снова ставит прогон в очередь. В публичном репозитории команду принимают владелец, участник организации и коллаборатор.
+
+Обе модели из линейки flash: разбор issue, правки по комментарию и отчёт Lighthouse идут на `glm-5.3-flash`, ревью diff, обход TODO и диагностика деплоя — на `deepseek-v4.1-flash`.
+
+| Воркфлоу | Событие | Модель | Назначение | Прогоны |
+| --- | --- | --- | --- | --- |
+| [opencode.yml](.github/workflows/opencode.yml) | комментарий с `/opencode` или `/oc` | `opencode/glm-5.3-flash` | разобрать issue или PR; по просьбе закоммитить и открыть PR | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode.yml) |
+| [opencode-review.yml](.github/workflows/opencode-review.yml) | PR: opened, synchronize, reopened, ready_for_review | `opencode/deepseek-v4.1-flash` | замечания к diff (Mantine, `make lint` / `make build` / `make test`), без коммитов | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode-review.yml) |
+| [opencode-triage.yml](.github/workflows/opencode-triage.yml) | новая issue, аккаунт старше 30 дней | `opencode/glm-5.3-flash` | ссылки на документацию, если есть ясный фикс; иначе молчит | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode-triage.yml) |
+| [opencode-scheduled.yml](.github/workflows/opencode-scheduled.yml) | каждый понедельник, 09:00 UTC | `opencode/deepseek-v4.1-flash` | сводка TODO и issue, если есть что чинить | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode-scheduled.yml) |
+| [nightly-audit.yml](.github/workflows/nightly-audit.yml) | каждый день в 17:08 UTC и вручную | `opencode/glm-5.3-flash` | issue с метриками Lighthouse | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/nightly-audit.yml) |
+| [deploy.yml](.github/workflows/deploy.yml) | вручную, workflow_dispatch | `opencode/deepseek-v4.1-flash` | диагностика последнего деплоя на Render | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/deploy.yml) |
+
+Ревью читает код и пишет комментарий токеном GitHub-приложения (OIDC, `contents: read`). Мержит и одобряет pull request человек. Pull request, открытый ботом, автоматическое ревью пропускает ([anomalyco/opencode#17224](https://github.com/anomalyco/opencode/issues/17224)): для него ревью запускают комментарием `/opencode` или `/oc`.
 
 ---
 
