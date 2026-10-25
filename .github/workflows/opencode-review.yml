@@ -6,36 +6,37 @@ on:
 
 jobs:
   review:
-    # opencode (v1.19.4) в assertPermissions() проверяет context.actor и для
-    # ботов всегда получает permission: none, из-за чего падают прогоны на
-    # pull_request от PR, открытых ботом (opencode-agent[bot],
-    # github-actions[bot]): "does not have write permissions"
-    # (upstream: anomalyco/opencode#17224, #23915). Для таких PR то же ревью
-    # запускается вручную комментарием /oc (событие issue_comment, actor — человек).
+    # Ограничение на этом аккаунте: в режиме use_github_token: true токен раннера
+    # отдаёт 403 "Resource not accessible by integration" на создание комментариев
+    # и реакций к PR (проверено на PR #24, хотя job имел Issues: write). Поэтому
+    # ревью использует OIDC: OpenCode обменивает OIDC-токен на токен GitHub-приложения
+    # opencode-agent и комментирует им (тот же механизм, что у /oc в opencode.yml,
+    # на нём замечания уже оставлены, например, на PR #23).
+    # Также opencode (v1.19.4) в assertPermissions() проверяет context.actor и для
+    # ботов получает permission: none (upstream: anomalyco/opencode#17224, #23915),
+    # поэтому PR, открытые ботом, пропускаются — для них ревью запускают комментарием /oc.
     if: >-
       github.actor != 'opencode-agent[bot]' &&
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    # Ревью только читает diff и пишет комментарии к PR (через issues API),
-    # не коммитит и не пушит. id-token не нужен: use_github_token: true
-    # пропускает OIDC-обмен и использует токен раннера.
+    # Ревью только читает код и оставляет комментарии (токен приложения выдаётся
+    # через OIDC), ничего не коммитит и не пушит.
     permissions:
+      id-token: write
       contents: read
-      pull-requests: read
-      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }} # нужен для Render MCP из opencode.json
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/deepseek-v4.1-flash
-          use_github_token: true
           prompt: |
             Сделай ревью этого pull request и оставь замечания комментарием к PR.
             Ничего не коммить и не пушь — только чтение и комментарии.
