@@ -7,7 +7,8 @@
 // /events — каталог типов события, /book/:slug — выбор слота,
 // /book/:slug/confirm — форма записи, /success/:id — экран успеха,
 // /admin — панель «Предстоящие события». Общие шапка и подвал —
-// в базовом макете AppLayout.
+// в базовом макете AppLayout. Тема — кастомная (src/theme.ts): палитра
+// brand и резолвер CSS-переменных с повышенной контрастностью (WCAG AA).
 import { MantineProvider } from '@mantine/core';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
@@ -17,10 +18,15 @@ import BookPage from './pages/BookPage';
 import ConfirmPage from './pages/ConfirmPage';
 import SuccessPage from './pages/SuccessPage';
 import AdminPage from './pages/AdminPage';
+import { cssVariablesResolver, theme } from './theme';
 
 export default function App() {
   return (
-    <MantineProvider defaultColorScheme="light">
+    <MantineProvider
+      theme={theme}
+      cssVariablesResolver={cssVariablesResolver}
+      defaultColorScheme="light"
+    >
       <BrowserRouter>
         <Routes>
           <Route element={<AppLayout />}>
