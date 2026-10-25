@@ -6,6 +6,12 @@ on:
 
 jobs:
   triage:
+    # Тот же upstream-баг assertPermissions(): для issue, созданных ботом
+    # (например, scheduled-workflow), проверка context.actor падает с
+    # "does not have write permissions" (anomalyco/opencode#17224, #23915).
+    if: >-
+      github.actor != 'opencode-agent[bot]' &&
+      github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
