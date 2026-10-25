@@ -1,0 +1,44 @@
+name: Nightly Lighthouse Audit
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # 18:00 UTC (21:00 / 9 вечера по Москве)
+  workflow_dispatch: # Позволяет запускать проверку вручную
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run Lighthouse Healthcheck
+        run: |
+          npx @lhci/cli@0.13.0 collect --url="${{ vars.APP_URL }}" --numberOfRuns=1
+          npx @lhci/cli@0.13.0 upload --target=filesystem --outputDir=./lhci-report
+
+      - name: Save Lighthouse Report as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: ./lhci-report/
+
+      - name: Run OpenCode Agent
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/glm-5.3-flash
+          prompt: |
+            В папке ./lhci-report находится свежий отчет Lighthouse о проверке скорости страниц приложения.
+            Твоя задача — проанализировать эти сырые данные и создать новый issue в этом репозитории с итогами проверки.
+            В описании задачи перечисли ключевые метрики, укажи найденные проблемы (если они есть) и сформируй чек-лист для их исправления.
+            ОБЯЗАТЕЛЬНО: Формируй ответ и создавай issue строго на русском языке.
