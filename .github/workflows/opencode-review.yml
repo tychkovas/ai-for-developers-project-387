@@ -7,38 +7,25 @@ on:
 jobs:
   review:
     # opencode (v1.19.4) в assertPermissions() проверяет context.actor и для
-    # ботов всегда получает permission: none, из-за чего падают PR от ботов
-    # (opencode-agent[bot]): "User opencode-agent[bot] does not have write
-    # permissions" (upstream: anomalyco/opencode#17224, #23915).
-    # Реальный ревью-запуск для таких PR запускается вручную комментарием /oc.
+    # ботов всегда получает permission: none, из-за чего падают прогоны на
+    # pull_request от PR, открытых ботом (opencode-agent[bot],
+    # github-actions[bot]): "does not have write permissions"
+    # (upstream: anomalyco/opencode#17224, #23915). Для таких PR то же ревью
+    # запускается вручную комментарием /oc (событие issue_comment, actor — человек).
     if: >-
       github.actor != 'opencode-agent[bot]' &&
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    # Ревью только читает diff и пишет комментарии к PR (через issues API),
+    # не коммитит и не пушит. id-token не нужен: use_github_token: true
+    # пропускает OIDC-обмен и использует токен раннера.
     permissions:
-      id-token: write
-      contents: write
-      pull-requests: write
+      contents: read
+      pull-requests: read
       issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
-      - name: Record HEAD before opencode
-        id: before
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_NUMBER: ${{ github.event.issue.pull_request && github.event.issue.number }}
-        run: |
-          if [ -n "$PR_HEAD_SHA" ]; then
-            sha="$PR_HEAD_SHA"
-          elif [ -n "$PR_NUMBER" ]; then
-            sha=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" --jq .head.sha)
-          else
-            sha=$(git rev-parse HEAD)
-          fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
@@ -50,19 +37,11 @@ jobs:
           model: opencode/deepseek-v4.1-flash
           use_github_token: true
           prompt: |
-            Review this pull request:
-            - Check for code quality issues
-            - Look for potential bugs
-            - Suggest improvements
-            Все ответы, объяснения, ревью и комментарии формируй только на русском языке.
-            Автоматическое короткое summary, commit subject и PR title MUST be in English and follow Conventional Commits: `<type>: <subject>` (feat, fix, chore, docs, refactor, test, ci, build, style, perf, revert). Не используй русский язык в commit subject, PR title и автоматическом summary.
-
-      - name: Normalize opencode commit and PR title
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          BASE_HEAD: ${{ steps.before.outputs.sha }}
-          ISSUE_NUMBER: ${{ github.event.pull_request.number }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: node scripts/normalize-opencode-commit.mjs
+            Сделай ревью этого pull request и оставь замечания комментарием к PR.
+            Ничего не коммить и не пушь — только чтение и комментарии.
+            Критерии ревью:
+            - UI только на Mantine: нет самописных стилей/компонентов там, где есть готовое решение в @mantine/core, @mantine/hooks, @mantine/dates, @mantine/form
+            - Проверки через make lint / make build / make test (oxlint, не eslint)
+            - Потенциальные баги, граничные случаи, нарушения типов
+            - Замечания к стилю, типам и очевидным ошибкам
+            Все ответы, объяснения и ревью формируй только на русском языке.
