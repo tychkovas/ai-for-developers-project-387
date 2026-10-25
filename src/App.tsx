@@ -10,6 +10,7 @@
 // в базовом макете AppLayout. Тема — кастомная (src/theme.ts): палитра
 // brand и резолвер CSS-переменных с повышенной контрастностью (WCAG AA).
 import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import HomePage from './pages/HomePage';
@@ -40,6 +41,9 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      {/* Тосты об успешных действиях (тикет #26): портал на уровне корня —
+          уведомление переживает смену маршрута. Монтируется один раз. */}
+      <Notifications position="top-right" />
     </MantineProvider>
   );
 }

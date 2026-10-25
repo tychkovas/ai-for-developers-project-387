@@ -19,6 +19,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { LoadingRow } from '../components/LoadingRow';
@@ -76,6 +77,13 @@ export default function ConfirmPage() {
       },
     });
     if (data) {
+      // Тост — дополнение к экрану успеха (тикет #26): портал смонтирован
+      // на уровне корня, поэтому уведомление переживает навигацию.
+      notifications.show({
+        title: 'Вы записаны!',
+        message: 'Запись добавлена в календарь владельца',
+        color: 'green',
+      });
       navigate(`/success/${data.id}`);
       return;
     }

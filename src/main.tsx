@@ -3,6 +3,9 @@
 // только если используются компоненты из этих пакетов.
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
+// Стили @mantine/notifications — после стилей core, иначе позиционирование
+// тостов не применяется (официальный гайд Mantine для Vite).
+import '@mantine/notifications/styles.css';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

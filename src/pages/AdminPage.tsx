@@ -24,6 +24,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { useState } from 'react';
 import { LoadingRow } from '../components/LoadingRow';
 import { cancelBooking, createEventType } from '../api';
@@ -88,6 +89,12 @@ export default function AdminPage() {
     });
     if (data) {
       form.reset();
+      // Успех — тост (тикет #26); ошибки остаются inline-Alert'ом выше.
+      notifications.show({
+        title: 'Тип события создан',
+        message: `«${data.name}» доступен в каталоге`,
+        color: 'green',
+      });
       return;
     }
     if (error?.code === 'id_taken') {

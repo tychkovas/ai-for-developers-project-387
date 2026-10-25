@@ -17,6 +17,7 @@
     "@mantine/dates": "^9.7.3",
     "@mantine/form": "^9.7.3",
     "@mantine/hooks": "^9.7.3",
+    "@mantine/notifications": "^9.7.3",
     "dayjs": "^1.11.23",
     "fastify": "^5.12.7",
     "react": "^19.3.1",
