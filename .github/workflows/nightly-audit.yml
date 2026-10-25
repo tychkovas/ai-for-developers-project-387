@@ -2,7 +2,7 @@ name: Nightly Lighthouse Audit
 
 on:
   schedule:
-    - cron: '0 18 * * *' # 18:00 UTC (21:00 / 9 вечера по Москве)
+    - cron: '32 15 * * *' # ~15:32 UTC (через ~20 мин от 15:12 UTC; разовый тест)
   workflow_dispatch: # Позволяет запускать проверку вручную
 
 permissions:
