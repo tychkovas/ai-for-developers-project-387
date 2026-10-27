@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/tychkovas/ai-for-developers-project-387/compare/v1.1.0...v1.2.0) (2026-10-27)
+
+
+### Features
+
+* add Mantine success toast notifications ([#34](https://github.com/tychkovas/ai-for-developers-project-387/issues/34)) ([0d48771](https://github.com/tychkovas/ai-for-developers-project-387/commit/0d48771396f48a0170ca68fbaa4f7e60a84f8858))
+* add meta description tag ([#28](https://github.com/tychkovas/ai-for-developers-project-387/issues/28)) ([4e0bd33](https://github.com/tychkovas/ai-for-developers-project-387/commit/4e0bd33dc5df214d4c9bfe15b24e1017107f7b80))
+
 ## [1.1.0](https://github.com/tychkovas/ai-for-developers-project-387/compare/v1.0.0...v1.1.0) (2026-10-25)
 
 
