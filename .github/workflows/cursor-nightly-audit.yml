@@ -1,4 +1,4 @@
-name: Weekly Lighthouse Audit (Cursor)
+name: Lighthouse Audit
 
 on:
   schedule:
