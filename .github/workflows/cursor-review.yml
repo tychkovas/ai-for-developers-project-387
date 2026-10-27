@@ -1,0 +1,66 @@
+name: cursor-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  review:
+    if: >-
+      github.event.sender.type != 'Bot' &&
+      !contains(github.actor, '[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install Cursor CLI
+        run: |
+          curl -fsSL https://cursor.com/install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
+
+      - name: Run Cursor review
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          {
+            echo "Сделай ревью pull request #${PR_NUMBER} («${PR_TITLE}») относительно ветки ${BASE_REF}."
+            echo "Ничего не коммить и не пушь — только анализ. Итоговый текст ревью выведи в stdout."
+            echo ""
+            echo "Критерии ревью:"
+            echo "- UI только на Mantine: нет самописных стилей/компонентов там, где есть готовое решение в @mantine/core, @mantine/hooks, @mantine/dates, @mantine/form"
+            echo "- Проверки через make lint / make build / make test (oxlint, не eslint)"
+            echo "- Потенциальные баги, граничные случаи, нарушения типов"
+            echo "- Замечания к стилю, типам и очевидным ошибкам"
+            echo "Все ответы, объяснения и ревью формируй только на русском языке."
+          } > /tmp/cursor-prompt.txt
+
+          agent -p "$(cat /tmp/cursor-prompt.txt)" \
+            --model composer-2.5 \
+            --trust \
+            --mode ask \
+            --output-format text \
+            | tee /tmp/cursor-review.md
+
+      - name: Post review comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "### Ревью Cursor Agent"
+            echo ""
+            cat /tmp/cursor-review.md
+          } > /tmp/cursor-review-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/cursor-review-comment.md

@@ -8,6 +8,8 @@ on:
 
 jobs:
   audit:
+    # DISABLED: заменён Cursor CLI workflow'ом. Убери `if: false` чтобы снова включить.
+    if: false
     runs-on: ubuntu-latest
     # Агент создаёт issue с отчётом (issues: write) и не коммитит.
     # actions: write нужен шагу upload-artifact, не агенту.

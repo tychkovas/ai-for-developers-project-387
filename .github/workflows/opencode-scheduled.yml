@@ -6,6 +6,8 @@ on:
 
 jobs:
   opencode:
+    # DISABLED: заменён Cursor CLI workflow'ом. Убери `if: false` чтобы снова включить.
+    if: false
     runs-on: ubuntu-latest
     # Промпт просит открыть issue, не коммитить и не открывать PR.
     # issues: write — на создание задачи. contents: read — только checkout.

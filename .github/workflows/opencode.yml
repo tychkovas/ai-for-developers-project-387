@@ -8,12 +8,14 @@ on:
 
 jobs:
   opencode:
+    # DISABLED: заменён на cursor.yml. Убери `false &&` чтобы снова включить.
     # Комментарий агента — тоже issue_comment. Без фильтра по отправителю
     # ответ с /opencode или /oc снова ставит этот job в очередь.
     # author_association: публичный репозиторий, звать агента могут только
     # владелец, участник организации и явные коллабораторы. CONTRIBUTOR
     # не входит: это любой, у кого уже есть коммит.
     if: |
+      false &&
       github.event.sender.type != 'Bot' &&
       !contains(github.event.comment.user.login, 'opencode') &&
       (

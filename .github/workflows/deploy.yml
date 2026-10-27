@@ -14,6 +14,8 @@ on:
 
 jobs:
   render-agent:
+    # DISABLED: заменён Cursor CLI workflow'ом. Убери `if: false` чтобы снова включить.
+    if: false
     runs-on: ubuntu-latest
     permissions:
       id-token: write

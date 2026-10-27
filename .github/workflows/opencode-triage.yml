@@ -6,11 +6,11 @@ on:
 
 jobs:
   triage:
-    # Тот же upstream-баг assertPermissions(): для issue, созданных ботом
-    # (например, nightly-audit), проверка context.actor падает с
-    # "does not have write permissions" (anomalyco/opencode#17224, #23915).
+    # DISABLED: заменён на cursor-triage.yml. Убери `false &&` чтобы снова включить.
+    # Upstream assertPermissions() падает на issue от ботов (opencode#17224, #23915).
     # Событие issues, не комментарий: comment.user здесь нет.
     if: >-
+      false &&
       github.event.sender.type != 'Bot' &&
       !contains(github.actor, 'opencode')
     runs-on: ubuntu-latest

@@ -1,0 +1,80 @@
+name: Cursor Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    if: >-
+      github.event.sender.type != 'Bot' &&
+      !contains(github.actor, '[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check account age
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const user = await github.rest.users.getByUsername({
+              username: context.payload.issue.user.login
+            });
+            const created = new Date(user.data.created_at);
+            const days = (Date.now() - created) / (1000 * 60 * 60 * 24);
+            return days >= 30;
+          result-encoding: string
+
+      - name: Checkout repository
+        if: steps.check.outputs.result == 'true'
+        uses: actions/checkout@v6
+
+      - name: Install Cursor CLI
+        if: steps.check.outputs.result == 'true'
+        run: |
+          curl -fsSL https://cursor.com/install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
+
+      - name: Run Cursor triage
+        if: steps.check.outputs.result == 'true'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          {
+            echo "Разбери issue #${ISSUE_NUMBER}."
+            echo "Заголовок: ${ISSUE_TITLE}"
+            echo "Описание:"
+            echo "${ISSUE_BODY}"
+            echo ""
+            echo "Если есть ясный фикс или релевантная документация в репозитории:"
+            echo "- дай ссылки на docs"
+            echo "- кратко подскажи обработку ошибок для примеров кода"
+            echo "Иначе ничего не комментируй и выведи ровно: NO_COMMENT"
+            echo "Все ответы только на русском. Ничего не коммить и не пушь."
+          } > /tmp/cursor-prompt.txt
+
+          agent -p "$(cat /tmp/cursor-prompt.txt)" \
+            --model composer-2.5 \
+            --trust \
+            --mode ask \
+            --output-format text \
+            | tee /tmp/cursor-triage.md
+
+          if grep -q '^NO_COMMENT$' /tmp/cursor-triage.md; then
+            echo "Agent chose not to comment"
+            exit 0
+          fi
+
+          {
+            echo "### Триаж Cursor Agent"
+            echo ""
+            cat /tmp/cursor-triage.md
+          } > /tmp/cursor-triage-comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/cursor-triage-comment.md
