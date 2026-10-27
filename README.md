@@ -2,6 +2,7 @@
 
 
 [![hexlet-check](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/tychkovas/ai-for-developers-project-387/actions)
+[![Weekly Lighthouse Audit (Cursor)](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-nightly-audit.yml/badge.svg)](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-nightly-audit.yml)
 
 Интегрируйте работу агентов в GitHub проект
 
