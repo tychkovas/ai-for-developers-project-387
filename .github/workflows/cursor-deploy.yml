@@ -45,4 +45,5 @@ jobs:
             --model composer-2.5 \
             --trust \
             --force \
+            --approve-mcps \
             --output-format text
