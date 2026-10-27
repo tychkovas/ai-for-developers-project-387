@@ -2,7 +2,7 @@
 
 
 [![hexlet-check](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/tychkovas/ai-for-developers-project-387/actions)
-[![Weekly Lighthouse Audit (Cursor)](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-nightly-audit.yml/badge.svg)](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-nightly-audit.yml)
+[![Web Service](https://img.shields.io/website?url=https://ai-for-developers-project-387-pqz0.onrender.com&label=Web%20Service)](https://ai-for-developers-project-387-pqz0.onrender.com)
 
 Интегрируйте работу агентов в GitHub проект
 
