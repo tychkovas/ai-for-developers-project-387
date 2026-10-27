@@ -84,24 +84,30 @@ make server    # docs/openapi.yaml -> server/ (openapi-generator, нужен Jav
 
 Локальный просмотр продакшен-сборки: `make preview` (аналог `npm run preview`)
 
-## Агенты OpenCode в GitHub
+## Агенты в GitHub
 
-Интерактивный воркфлоу слушает комментарии к issue и pull request, но запускается только на команду `/opencode` или `/oc`: набор задан параметром `mentions`, а не дефолтом экшена. События от ботов пропускаются, иначе ответ агента снова ставит прогон в очередь. В публичном репозитории команду принимают владелец, участник организации и коллаборатор.
+В репозитории работают автономные агенты в GitHub Actions: разбирают issue и pull request по команде в комментарии, делают ревью PR, триажат новые issue, раз в неделю смотрят TODO, по расписанию снимают Lighthouse и заводят issue, по запросу диагностируют деплой на Render.
 
-Репозиторий открытый, сессии агента нет. В [`opencode.json`](./opencode.json) стоит `"share": "disabled"`: ссылка на переписку и контекст прогона не создаётся. Код по-прежнему доступен на GitHub.
+Общие правила: события от ботов пропускаются (иначе ответ снова ставит прогон в очередь); в публичном репозитории интерактивную команду принимают владелец, участник организации и коллаборатор; UI только на Mantine; проверки через `make lint` / `make build` / `make test`; ответы и комментарии — на русском; commit subject и PR title — English Conventional Commits (`<type>: <subject>`). Мержит и одобряет pull request человек.
 
-Обе модели из линейки flash: разбор issue, правки по комментарию и отчёт Lighthouse идут на `glm-5.3-flash`, ревью diff, обход TODO и диагностика деплоя — на `deepseek-v4.1-flash`.
+Команды вызова в комментарии: `/opencode`, `/oc`, `/cursor`, `/cu` — все запускают текущий интерактивный workflow (исторические алиасы сохранены). Pull request, открытый ботом, автоматическое ревью пропускает: для него ревью запускают той же командой.
 
-| Воркфлоу | Событие | Модель | Назначение | Прогоны |
-| --- | --- | --- | --- | --- |
-| [opencode.yml](.github/workflows/opencode.yml) | комментарий с `/opencode` или `/oc` | `opencode/glm-5.3-flash` | разобрать issue или PR; по просьбе закоммитить и открыть PR | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode.yml) |
-| [opencode-review.yml](.github/workflows/opencode-review.yml) | PR: opened, synchronize, reopened, ready_for_review | `opencode/deepseek-v4.1-flash` | замечания к diff (Mantine, `make lint` / `make build` / `make test`), без коммитов | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode-review.yml) |
-| [opencode-triage.yml](.github/workflows/opencode-triage.yml) | новая issue, аккаунт старше 30 дней | `opencode/glm-5.3-flash` | ссылки на документацию, если есть ясный фикс; иначе молчит | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode-triage.yml) |
-| [opencode-scheduled.yml](.github/workflows/opencode-scheduled.yml) | каждый понедельник, 09:00 UTC | `opencode/deepseek-v4.1-flash` | сводка TODO и issue, если есть что чинить | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/opencode-scheduled.yml) |
-| [nightly-audit.yml](.github/workflows/nightly-audit.yml) | каждый день в 17:08 UTC и вручную | `opencode/glm-5.3-flash` | issue с метриками Lighthouse | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/nightly-audit.yml) |
-| [deploy.yml](.github/workflows/deploy.yml) | вручную, workflow_dispatch | `opencode/deepseek-v4.1-flash` | диагностика последнего деплоя на Render | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/deploy.yml) |
+| Воркфлоу | Событие | Назначение | Прогоны |
+| --- | --- | --- | --- |
+| [cursor.yml](.github/workflows/cursor.yml) | комментарий с `/opencode`, `/oc`, `/cursor` или `/cu` | разобрать issue или PR; по просьбе закоммитить и открыть PR | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor.yml) |
+| [cursor-review.yml](.github/workflows/cursor-review.yml) | PR: opened, synchronize, reopened, ready_for_review | замечания к diff (Mantine, `make lint` / `make build` / `make test`), без коммитов | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-review.yml) |
+| [cursor-triage.yml](.github/workflows/cursor-triage.yml) | новая issue, аккаунт старше 30 дней | ссылки на документацию, если есть ясный фикс; иначе молчит | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-triage.yml) |
+| [cursor-scheduled.yml](.github/workflows/cursor-scheduled.yml) | каждый понедельник, 09:00 UTC | сводка TODO и issue, если есть что чинить | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-scheduled.yml) |
+| [cursor-nightly-audit.yml](.github/workflows/cursor-nightly-audit.yml) | каждый понедельник, 21:00 Asia/Dubai, и вручную | issue с метриками Lighthouse | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-nightly-audit.yml) |
+| [cursor-deploy.yml](.github/workflows/cursor-deploy.yml) | вручную, workflow_dispatch | диагностика последнего деплоя на Render | [Actions](https://github.com/tychkovas/ai-for-developers-project-387/actions/workflows/cursor-deploy.yml) |
 
-Ревью читает код и пишет комментарий токеном GitHub-приложения (OIDC, `contents: read`). Мержит и одобряет pull request человек. Pull request, открытый ботом, автоматическое ревью пропускает ([anomalyco/opencode#17224](https://github.com/anomalyco/opencode/issues/17224)): для него ревью запускают комментарием `/opencode` или `/oc`.
+### Сейчас
+
+- Активный рантайм: **Cursor CLI** (`agent` в GitHub Actions), модель `composer-2.5`, секрет `CURSOR_API_KEY`.
+- Ревью и комментарии пишутся через `GITHUB_TOKEN` и `gh`.
+- Render MCP для активного рантайма: [`.cursor/mcp.json`](./.cursor/mcp.json) и секрет `RENDER_API_KEY`.
+- Отключённый стек OpenCode: `opencode*.yml` / `deploy.yml` / `nightly-audit.yml` с `if: false`; конфиг [`opencode.json`](./opencode.json) (в т.ч. `"share": "disabled"`) нужен при повторном включении (`OPENCODE_API_KEY`).
+- Снимок эпохи OpenCode: ветка [`main-opencode`](https://github.com/tychkovas/ai-for-developers-project-387/tree/main-opencode).
 
 ---
 
